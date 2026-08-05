@@ -1,0 +1,221 @@
+# =============================================================================
+# elevate-privilege — GitLab CI/CD
+# =============================================================================
+# Fix for empty/instant-failed pipelines:
+#   Settings → CI/CD → Runners → enable "Turn on instance runners for this project"
+#
+# The `build:zainium` job cross-builds for Zainium OS's own musl target
+# (x86_64-zainium-linux-musl) using a crosstool-NG toolchain that lives on a
+# physical drive, not on GitLab.com's shared runners. It's tagged for a
+# self-hosted runner and `allow_failure: true` until that runner is
+# registered (see scripts/build-zainium.sh) — it does not block the rest of
+# the pipeline going green.
+# =============================================================================
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+stages:
+  - check
+  - test
+  - build
+  - release
+
+variables:
+  CARGO_HOME: "$CI_PROJECT_DIR/.cargo-ci"
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  RUST_BACKTRACE: "1"
+  FF_TIMESTAMPS: "true"
+
+default:
+  image: rust:latest
+  interruptible: true
+
+# ── cache template ───────────────────────────────────────────────────────
+.cargo_job:
+  cache:
+    key:
+      files:
+        - Cargo.lock
+      prefix: elevate-privilege-cargo
+    paths:
+      - .cargo-ci/registry/
+      - .cargo-ci/git/
+      - target/
+    policy: pull-push
+  before_script:
+    - rustc --version && cargo --version
+    - rustup show
+
+# =============================================================================
+# check
+# =============================================================================
+
+check:
+  extends: .cargo_job
+  stage: check
+  script:
+    - cargo check --workspace
+    - cargo check -p elevate-pam --no-default-features --features std
+
+# elevate-pam must stay buildable outside this monorepo (see
+# elevate-pam/README.md) -- exercised here via --manifest-path so a
+# workspace-only path dependency regression fails CI instead of surfacing
+# only when a downstream distro tries to package it.
+check:standalone-elevate-pam:
+  extends: .cargo_job
+  stage: check
+  script:
+    - cargo build --manifest-path elevate-pam/pam/Cargo.toml --release
+    - cargo build --manifest-path elevate-pam/pam-unix/Cargo.toml --release
+
+clippy:
+  extends: .cargo_job
+  stage: check
+  script:
+    - rustup component add clippy
+    - cargo clippy --workspace --all-targets -- -D warnings
+
+# Large pre-existing codebase, not yet fmt-clean everywhere -- non-blocking
+# until it is.
+fmt:
+  extends: .cargo_job
+  stage: check
+  allow_failure: true
+  script:
+    - rustup component add rustfmt
+    - cargo fmt --all -- --check
+
+# =============================================================================
+# test
+# =============================================================================
+
+test:
+  extends: .cargo_job
+  stage: test
+  timeout: 45m
+  script:
+    - cargo test --workspace --lib
+    - cargo test --workspace --tests
+
+# =============================================================================
+# build
+# =============================================================================
+
+# Host glibc build -- default target, all PAM .so modules + crypto + sudo
+# replacement + shadow replacement, all workspace default-members.
+build:
+  extends: .cargo_job
+  stage: build
+  script:
+    - ./scripts/build-all.sh
+    - test -x target/release/elevate
+    - test -f target/release/libelevate_pam.so
+    - test -f target/release/libpam_unix.so
+  artifacts:
+    name: "elevate-privilege-glibc-$CI_COMMIT_SHORT_SHA"
+    expire_in: 30 days
+    paths:
+      - target/release/elevate
+      - target/release/elev
+      - target/release/vielev
+      - target/release/libelevate_pam.so
+      - target/release/libelevate_crypto.so
+      - target/release/libpam_*.so
+
+# Generic musl-static elevate/elev/vielev + elevate-umbra binaries (rustup's
+# own self-contained musl, no external toolchain needed -- see
+# elevate/MUSL_BUILD_README.md). Distinct from build:zainium below, which
+# targets Zainium OS's own musl specifically.
+build:musl-static:
+  extends: .cargo_job
+  stage: build
+  script:
+    - rustup target add x86_64-unknown-linux-musl
+    - ./scripts/build-zainium.sh static
+    - file dist/zainium/overlayer/syshub/bin/elevate | grep -q "static-pie linked"
+  artifacts:
+    name: "elevate-privilege-musl-static-$CI_COMMIT_SHORT_SHA"
+    expire_in: 30 days
+    paths:
+      - dist/zainium/overlayer/syshub/bin/
+      - dist/zainium/overlayer/syshub/sbin/
+
+# Real Zainium OS target: PAM .so modules + libelevate_pam.so +
+# libelevate_crypto.so built with the crosstool-NG toolchain via nightly
+# `-Z build-std` (see scripts/build-zainium.sh and targets/x86_64-zainium-linux-musl.json).
+# Needs a self-hosted runner with the toolchain available at
+# $ZAINIUM_TOOLCHAIN_BIN (CI/CD variable) -- not yet registered, so this
+# stays allow_failure until it is.
+build:zainium:
+  stage: build
+  tags:
+    - zainium-toolchain
+  allow_failure: true
+  before_script:
+    - rustup toolchain install nightly-2026-05-24 --component rust-src
+  script:
+    - ./scripts/build-zainium.sh dynamic
+    - file dist/zainium/overlayer/syshub/lib/security/pam_unix.so | grep -q "dynamically linked"
+  artifacts:
+    name: "elevate-privilege-zainium-$CI_COMMIT_SHORT_SHA"
+    expire_in: 30 days
+    paths:
+      - dist/zainium/overlayer/syshub/lib/
+
+# =============================================================================
+# release (only vX.Y.Z tags)
+# =============================================================================
+
+release:
+  stage: release
+  image: curlimages/curl:8.12.1
+  needs:
+    - job: build
+      artifacts: true
+    - job: build:musl-static
+      artifacts: true
+    - job: test
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/
+  script:
+    - |
+      set -eu
+      TAG="$CI_COMMIT_TAG"
+      NAME="elevate-privilege-${TAG}"
+      mkdir -p "dist/${NAME}/glibc" "dist/${NAME}/musl-static"
+      cp -a target/release/elevate target/release/elev target/release/vielev \
+        target/release/libelevate_pam.so target/release/libelevate_crypto.so \
+        target/release/libpam_*.so "dist/${NAME}/glibc/" 2>/dev/null || true
+      cp -a dist/zainium/overlayer/syshub/bin dist/zainium/overlayer/syshub/sbin \
+        "dist/${NAME}/musl-static/" 2>/dev/null || true
+      cp -a LICENSE-MIT LICENSE-APACHE README.md "dist/${NAME}/"
+      tar -C dist -czf "dist/${NAME}.tar.gz" "${NAME}"
+      (cd dist && sha256sum "${NAME}.tar.gz" > "${NAME}.tar.gz.sha256")
+      ls -la dist/
+    - |
+      set -eu
+      TAG="$CI_COMMIT_TAG"
+      FILE="dist/elevate-privilege-${TAG}.tar.gz"
+      SUM="${FILE}.sha256"
+      for asset in "$FILE" "$SUM"; do
+        name=$(basename "$asset")
+        curl --fail --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+          --upload-file "$asset" \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/elevate-privilege/${TAG}/${name}"
+      done
+      NAME=$(basename "$FILE")
+      PKG="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/elevate-privilege/${TAG}/${NAME}"
+      DESC="elevate-privilege ${TAG} — memory-safe PAM + sudo + shadow replacement for Zainium OS"
+      DATA=$(printf '{"name":"elevate-privilege %s","tag_name":"%s","description":"%s","assets":{"links":[{"name":"%s","url":"%s","link_type":"package"}]}}' \
+        "$TAG" "$TAG" "$DESC" "$NAME" "$PKG")
+      curl --fail --request POST \
+        --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+        --header "Content-Type: application/json" \
+        --data "$DATA" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases" \
+        || echo "Release may already exist; package upload OK."

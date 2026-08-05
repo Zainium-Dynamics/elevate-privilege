@@ -1,0 +1,18 @@
+# NOT a Cargo workspace.
+# All packages are members of the monorepo workspace:
+#   /home/alizain/elevate/Cargo.toml
+#   single config: /home/alizain/elevate/elevate.toml
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+# Copyright (c) 2026 Zainium Dynamics
+
+[package]
+name = "elevate-pam-tree"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "Placeholder so this directory is not a nested workspace — build from monorepo root"
+
+[lib]
+name = "elevate_pam_tree"
+path = "tree_stub.rs"

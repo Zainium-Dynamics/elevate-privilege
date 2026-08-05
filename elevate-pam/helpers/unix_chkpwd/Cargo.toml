@@ -1,0 +1,14 @@
+[package]
+name = "unix_chkpwd"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "setuid helper for shadow password checks (elevate-pam)"
+publish = false
+
+[[bin]]
+name = "unix_chkpwd"
+path = "src/main.rs"
+
+[dependencies]
+libc = { workspace = true }

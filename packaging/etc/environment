@@ -1,0 +1,2 @@
+# /etc/environment — simple KEY=value pairs (pam_env envfile)
+# PATH="/sbin:/bin"

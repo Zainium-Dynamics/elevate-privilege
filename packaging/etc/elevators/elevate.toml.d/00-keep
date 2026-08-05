@@ -1,0 +1,3 @@
+## Placeholder so the drop-in directory is never empty after install.
+## Safe no-op: empty Cmnd_Alias is unused; real rules go in sibling files.
+# Cmnd_Alias KEEP = /bin/true

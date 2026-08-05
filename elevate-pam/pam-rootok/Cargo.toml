@@ -1,0 +1,16 @@
+[package]
+name = "pam-rootok"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "elevate-pam rootok module"
+publish = false
+
+[lib]
+name = "pam_rootok"
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+elevate-pam = { workspace = true }
+libc = { workspace = true }

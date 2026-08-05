@@ -1,0 +1,46 @@
+## elevate.toml file (sudoers-compatible syntax).
+##
+## This file SHOULD be edited with the 'viselev' command as root.
+## Failure to use 'viselev' may result in syntax or file permission errors
+## that prevent elevate from running.
+##
+## See the elevate.toml man page (elevate.toml(5)) for the details on how
+## to write this file.
+
+## Defaults specification
+##
+## Preserve editor environment variables for viselev.
+## To preserve these for all commands, remove the "!viselev" qualifier.
+Defaults!/sbin/viselev env_keep += "ELEVATE_EDITOR EDITOR VISUAL"
+##
+## Use a hard-coded PATH instead of the user's to find commands.
+## This also helps prevent poorly written scripts from running
+## arbitrary commands under elevate. Zainium has no merged /usr, so
+## only /bin and /sbin are listed.
+Defaults secure_path="/sbin:/bin"
+##
+## Uncomment this to allow commands run by elevate to see the
+## environment variables set by sshd(8).
+# Defaults env_keep += "SSH_*"
+##
+## Uncomment to disable "use_pty" when running commands as root.
+## Commands run as non-root users will run in a pseudo-terminal,
+## not the user's own terminal, to prevent command injection.
+# Defaults>root !use_pty
+##
+## Uncomment if the historical silent password prompt is desired
+# Defaults !pwfeedback
+
+### User privilege specifications
+
+## Allow root to execute any command
+root ALL=(ALL:ALL) ALL
+
+## Allow members of the wheel group to execute any command
+%wheel	ALL=(ALL:ALL) ALL
+
+## Same thing without a password
+# %wheel ALL=(ALL:ALL) NOPASSWD: ALL
+
+## Read drop-in files from /etc/elevators/elevate.toml.d
+@includedir /etc/elevators/elevate.toml.d

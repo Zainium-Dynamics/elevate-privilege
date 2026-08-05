@@ -1,0 +1,42 @@
+## /etc/elevators/elevate.toml
+##
+## elevate privilege policy (Zainium).
+##
+## IMPORTANT:
+##   - File name ends in .toml for Zainium naming, but the syntax is
+##     classic sudoers grammar (NOT real TOML / serde).
+##   - Edit with:  viselev
+##   - Do NOT invent [globals] / [[rules]] tables — elevate will reject them.
+##
+## See: elevate.toml(5), docs/elevate.toml.example
+
+## Preserve editor environment for viselev only.
+Defaults!/sbin/viselev env_keep += "ELEVATE_EDITOR EDITOR VISUAL"
+
+## Hard-coded secure PATH (Zainium has no merged /usr).
+## Overlayer-first so core tools resolve under syshub when present.
+Defaults secure_path="/overlayer/syshub/sbin:/overlayer/syshub/bin:/sbin:/bin"
+
+## Password feedback (asterisks) while typing.
+Defaults pwfeedback
+
+## Always use a pty for elevated commands (safer against TTY injection).
+Defaults use_pty
+
+### User privilege specifications
+
+## Root may run anything.
+root ALL=(ALL:ALL) ALL
+
+## Members of the wheel group may run anything (password required).
+%wheel ALL=(ALL:ALL) ALL
+
+## Same for group "admin" if your distro uses that name.
+# %admin ALL=(ALL:ALL) ALL
+
+## Per-user example (uncomment and replace with a real username):
+# alizain ALL=(ALL:ALL) ALL
+# alizain ALL=(ALL:ALL) NOPASSWD: ALL
+
+## Drop-in directory (lexically sorted; skip names with '.' or ending in '~').
+@includedir /etc/elevators/elevate.toml.d

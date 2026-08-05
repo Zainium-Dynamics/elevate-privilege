@@ -1,0 +1,19 @@
+# /etc/pam.d/elevate
+#
+# PAM service config for the Zainium "elevate" binary (sudo-rs replacement
+# for sudo). This is read when `elevate` calls pam_start("elevate", ...).
+#
+# This mirrors the standard upstream Debian/Fedora "sudo" PAM stack, with
+# names/paths adjusted for a system with no merged /usr (modules are looked
+# up via the standard PAM module search path, which is configured at
+# Linux-PAM build time and does not need /usr to function).
+
+auth       required     pam_env.so readenv=1
+auth       required     pam_unix.so
+
+account    required     pam_unix.so
+
+password   required     pam_unix.so
+
+session    required     pam_limits.so
+session    required     pam_unix.so

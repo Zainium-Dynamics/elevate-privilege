@@ -1,0 +1,21 @@
+[package]
+name = "elevate-pam-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Standalone CLI and test harness for elevate-pam"
+publish = false
+
+[[bin]]
+name = "elevate-pam"
+path = "src/main.rs"
+
+[features]
+default = ["standalone"]
+standalone = ["elevate-pam/standalone"]
+shared = ["elevate-pam/shared"]
+static = ["elevate-pam/static"]
+
+[dependencies]
+elevate-pam = { workspace = true }
+libc = { workspace = true }

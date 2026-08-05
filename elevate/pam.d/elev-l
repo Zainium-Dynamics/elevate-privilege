@@ -1,0 +1,20 @@
+# /etc/pam.d/elev-l
+#
+# PAM service config for `elev -` / `elev --login` (login-shell mode).
+# This is read when `elev` calls pam_start("elev-l", ...) -- this happens
+# on Linux specifically when a login shell is requested
+# (see src/su/mod.rs: `if login && cfg!(target_os = "linux")`).
+#
+# This includes pam_env.so to set up a full login environment, similar to
+# upstream's "su-l" service.
+
+auth       sufficient   pam_rootok.so
+auth       required     pam_unix.so
+
+account    required     pam_unix.so
+
+password   required     pam_unix.so
+
+session    required     pam_env.so readenv=1
+session    required     pam_unix.so
+session    optional     pam_xauth.so

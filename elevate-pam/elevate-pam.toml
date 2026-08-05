@@ -1,0 +1,86 @@
+# =============================================================================
+# elevate — single monorepo configuration (TOML only, no JSON)
+# =============================================================================
+# SPDX-License-Identifier: MIT OR Apache-2.0
+# Copyright (c) 2026 Zainium Dynamics
+# Author: alizain <alizain@zainiumdynamics.tech>
+# Website: https://zainiumdynamics.tech
+#
+# Zainium paths: NO /usr — only /bin, /sbin, /lib, /etc
+# Crypto is 100% pure Rust (no C OpenSSL).
+
+[project]
+name = "elevate"
+version = "1.0.0"
+author = "alizain"
+email = "alizain@zainiumdynamics.tech"
+website = "https://zainiumdynamics.tech"
+license = "MIT OR Apache-2.0"
+
+[build]
+shared = true
+static = false
+standalone = false
+rust_version = "1.96"
+lto = true
+strip = true
+
+[features]
+std = true
+alloc = true
+blake3 = true
+ed25519 = true
+password = true
+legacy_shadow = true
+# no C OpenSSL
+openssl_c = false
+system_crypt = true
+dynload = true
+syslog = true
+legacy_pamd = false
+secure_mem = true
+fail_delay = true
+builtin_modules = true
+
+[paths]
+prefix = "/overlayer/syshub"
+bindir = "/overlayer/syshub/bin"
+sbindir = "/overlayer/syshub/bin"
+libdir = "/overlayer/syshub/lib"
+includedir = "/overlayer/syshub/include"
+conf_dir = "/overlayer/syshub/etc/elevate-pam"
+services_dir = "/overlayer/syshub/etc/elevate-pam/services"
+services_dropin_dir = "/overlayer/syshub/etc/elevate-pam/services.d"
+module_dir = "/overlayer/syshub/lib/security"
+vendor_dir = "/overlayer/syshub/lib/elevate-pam/services"
+default_service = "other"
+elevators_dir = "/overlayer/syshub/etc/elevators"
+elevators_file = "/overlayer/syshub/etc/elevators/elevate.toml"
+
+[crypto]
+# Pure Rust only
+implementation = "rust"
+hash = "blake3"
+signature = "ed25519"
+password_preferred = "argon2id"
+legacy_shadow_verify = true
+# C OpenSSL is NOT used
+openssl_c = false
+
+[security]
+fail_delay_usec = 2_000_000
+zeroize_authtok = true
+reject_service_paths = true
+max_include_depth = 32
+max_substack_level = 16
+max_stack_modules = 64
+
+[logging]
+facility = "authpriv"
+level = "info"
+ident = "elevate"
+
+[components]
+crypto = true
+pam = true
+sudo = true

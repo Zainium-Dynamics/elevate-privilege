@@ -1,0 +1,16 @@
+[package]
+name = "pam-limits"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "elevate-pam limits module"
+publish = false
+
+[lib]
+name = "pam_limits"
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+elevate-pam = { workspace = true }
+libc = { workspace = true }

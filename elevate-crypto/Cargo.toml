@@ -1,0 +1,53 @@
+[package]
+# NOTE: pinned explicitly (not `.workspace = true`) so this crate stays
+# buildable standalone (no parent [workspace] required) -- it's a path-dep
+# of elevate-pam, which itself needs to build outside the monorepo. Keep in
+# sync with the workspace root Cargo.toml's [workspace.package].
+name = "elevate-crypto"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.96"
+license = "MIT OR Apache-2.0"
+authors = ["alizain <alizain@zainiumdynamics.tech>"]
+homepage = "https://zainiumdynamics.tech"
+repository = "https://gitlab.com/zainium-dynamics/elevate-privilege"
+description = "elevate-crypto — pure Rust: Blake3, Ed25519, password-crypt (no C OpenSSL)"
+readme = "README.md"
+categories = ["authentication", "cryptography", "os::linux-apis"]
+keywords = ["elevate", "blake3", "ed25519", "crypt", "pure-rust"]
+
+[lib]
+name = "elevate_crypto"
+crate-type = ["rlib", "cdylib", "staticlib"]
+path = "src/lib.rs"
+
+[features]
+# All crypto is pure Rust. No C OpenSSL / libcrypto.
+default = ["std", "password", "sign", "hash", "legacy_shadow", "system_crypt"]
+std = ["alloc", "blake3/std", "getrandom/std"]
+alloc = []
+hash = ["dep:blake3"]
+sign = ["dep:ed25519-dalek", "dep:rand_core"]
+password = ["dep:argon2", "dep:bcrypt", "dep:password-hash"]
+legacy_shadow = ["password", "dep:sha-crypt"]
+# system crypt(3) only for obscure /etc/shadow formats pure-Rust does not cover
+system_crypt = ["std", "dep:libc"]
+
+[dependencies]
+zeroize = { version = "1.8", default-features = false, features = ["alloc", "derive"] }
+subtle = { version = "2.5", default-features = false }
+blake3 = { version = "1.5", optional = true }
+ed25519-dalek = { version = "2.1", default-features = false, features = ["alloc", "rand_core"], optional = true }
+rand_core = { version = "0.6", default-features = false, features = ["getrandom"], optional = true }
+argon2 = { version = "0.5", default-features = false, features = ["alloc", "password-hash"], optional = true }
+bcrypt = { version = "0.16", optional = true }
+password-hash = { version = "0.5", default-features = false, features = ["alloc"], optional = true }
+sha-crypt = { version = "0.5", optional = true }
+getrandom = { version = "0.2", optional = true }
+libc = { version = "0.2", optional = true }
+
+[dev-dependencies]
+tempfile = "3.14"
+
+[package.metadata.docs.rs]
+all-features = true

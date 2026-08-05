@@ -1,0 +1,16 @@
+[package]
+name = "pam-group"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "elevate-pam dynamic group membership module"
+publish = false
+
+[lib]
+name = "pam_group"
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+elevate-pam = { workspace = true }
+libc = { workspace = true }

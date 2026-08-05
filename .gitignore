@@ -1,0 +1,7 @@
+/target
+**/target
+/dist
+*.swp
+.DS_Store
+third_party/openssl-4.0.1/install/
+third_party/openssl-4.0.1/*.o

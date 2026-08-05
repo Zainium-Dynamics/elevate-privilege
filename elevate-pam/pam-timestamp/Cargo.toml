@@ -1,0 +1,17 @@
+[package]
+name = "pam-timestamp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "elevate-pam authentication timestamp cache module"
+publish = false
+
+[lib]
+name = "pam_timestamp"
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+elevate-pam = { workspace = true }
+elevate-paths = { workspace = true }
+libc = { workspace = true }

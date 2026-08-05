@@ -1,0 +1,33 @@
+# === workspace-wide cross-libc target config ===
+#
+# Mirrors elevate_privilege.toml's [targets.*] table. No [build] target is
+# forced here (unlike elevate/.cargo/config.toml, which is scoped to the
+# elevate/elev/viselev binaries specifically): on this toolchain, forcing
+# musl workspace-wide silently drops `cdylib` outputs (elevate-pam's .so
+# modules need an actual dynamic-linking musl toolchain, not just
+# crt-static), so `cargo build --workspace` with no --target keeps using
+# your host's default target — everything (including PAM modules) builds
+# normally. Pass --target explicitly to opt into one of the triples below.
+#
+# Redox has no Linux-PAM equivalent, no setuid bit, and a different
+# privilege model entirely — the redox section here is compile-target
+# plumbing only (elevate/elevate-crypto become cross-compilable), not a
+# claim that elevate-pam or elevate's setuid escalation function there.
+#
+# x86_64-zainium-linux-musl: Zainium OS's own target. Rustup's stock
+# x86_64-unknown-linux-musl target hard-drops `cdylib` regardless of
+# crt-static rustflags (its target spec's `crt-static-default: true` gates
+# crate-type support, not the resolved effective flag — verified). The
+# custom spec at targets/x86_64-zainium-linux-musl.json sets
+# `crt-static-default: false` instead, so cdylib (PAM .so modules,
+# libelevate_crypto.so) builds by default; pass
+# `-C target-feature=+crt-static` to opt into a fully static binary for
+# elevate/elev/vielev specifically (see scripts/build-zainium.sh). Needs
+# nightly + `-Z build-std` (no prebuilt std ships for a custom target) —
+# see scripts/build-zainium.sh, which is the only place this target is
+# invoked from; it never affects the default `cargo build` (no --target).
+[target.x86_64-zainium-linux-musl]
+linker = "x86_64-zainium-linux-musl-gcc"
+
+[target.x86_64-unknown-redox]
+linker = "x86_64-unknown-redox-gcc"

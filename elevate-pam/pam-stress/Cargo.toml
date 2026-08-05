@@ -1,0 +1,16 @@
+[package]
+name = "pam-stress"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "elevate-pam PAM pipeline stress module"
+publish = false
+
+[lib]
+name = "pam_stress"
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+elevate-pam = { workspace = true }
+libc = { workspace = true }

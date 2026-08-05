@@ -1,0 +1,135 @@
+[package]
+name = "elevate-umbra"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+keywords.workspace = true
+description = "Pure-Rust Shadow 4.17.2 authentication & user management suite for ZainiumOS syshub"
+
+[dependencies]
+elevate-crypto.workspace = true
+elevate-paths.workspace = true
+libc.workspace = true
+zeroize.workspace = true
+nix.workspace = true
+
+[[bin]]
+name = "useradd"
+path = "src/bin/useradd.rs"
+
+[[bin]]
+name = "userdel"
+path = "src/bin/userdel.rs"
+
+[[bin]]
+name = "usermod"
+path = "src/bin/usermod.rs"
+
+[[bin]]
+name = "groupadd"
+path = "src/bin/groupadd.rs"
+
+[[bin]]
+name = "groupdel"
+path = "src/bin/groupdel.rs"
+
+[[bin]]
+name = "groupmod"
+path = "src/bin/groupmod.rs"
+
+[[bin]]
+name = "passwd"
+path = "src/bin/passwd.rs"
+
+[[bin]]
+name = "chpasswd"
+path = "src/bin/chpasswd.rs"
+
+[[bin]]
+name = "chgpasswd"
+path = "src/bin/chgpasswd.rs"
+
+[[bin]]
+name = "chage"
+path = "src/bin/chage.rs"
+
+[[bin]]
+name = "chfn"
+path = "src/bin/chfn.rs"
+
+[[bin]]
+name = "chsh"
+path = "src/bin/chsh.rs"
+
+[[bin]]
+name = "pwck"
+path = "src/bin/pwck.rs"
+
+[[bin]]
+name = "grpck"
+path = "src/bin/grpck.rs"
+
+[[bin]]
+name = "vipw"
+path = "src/bin/vipw.rs"
+
+[[bin]]
+name = "umbra-sign"
+path = "src/bin/umbra-sign.rs"
+
+[[bin]]
+name = "gpasswd"
+path = "src/bin/gpasswd.rs"
+
+[[bin]]
+name = "newusers"
+path = "src/bin/newusers.rs"
+
+[[bin]]
+name = "groupmems"
+path = "src/bin/groupmems.rs"
+
+[[bin]]
+name = "nologin"
+path = "src/bin/nologin.rs"
+
+[[bin]]
+name = "expiry"
+path = "src/bin/expiry.rs"
+
+[[bin]]
+name = "pwconv"
+path = "src/bin/pwconv.rs"
+
+[[bin]]
+name = "pwunconv"
+path = "src/bin/pwunconv.rs"
+
+[[bin]]
+name = "grpconv"
+path = "src/bin/grpconv.rs"
+
+[[bin]]
+name = "grpunconv"
+path = "src/bin/grpunconv.rs"
+
+[[bin]]
+name = "newgrp"
+path = "src/bin/newgrp.rs"
+
+[[bin]]
+name = "faillog"
+path = "src/bin/faillog.rs"
+
+[[bin]]
+name = "sulogin"
+path = "src/bin/sulogin.rs"
+
+[[bin]]
+name = "sudo"
+path = "src/bin/sudo.rs"

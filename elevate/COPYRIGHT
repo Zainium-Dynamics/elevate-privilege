@@ -1,0 +1,17 @@
+elevate (elev / viselev)
+========================
+
+Copyright (c) 2026 Zainium Dynamics
+Author:  alizain <alizain@zainiumdynamics.tech>
+Website: https://zainiumdynamics.tech
+
+Additional copyrights (upstream heritage — preserved):
+  Copyright (c) 2022-2026 Trifecta Tech Foundation and contributors
+  Copyright (c) 1994-1996, 1998-2024 Todd C. Miller <Todd.Miller@sudo.ws>
+
+This package originated as a fork of sudo-rs, adapted for Zainium OS as part
+of the elevate monorepo.
+Full license texts:  ../LICENSE-MIT, ../LICENSE-APACHE
+Upstream history:    NOTICE.md
+
+SPDX-License-Identifier: MIT OR Apache-2.0

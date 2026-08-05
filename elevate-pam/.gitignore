@@ -1,0 +1,17 @@
+/target
+**/*.rs.bk
+Cargo.lock
+*.so
+*.a
+*.rlib
+*.o
+*.pyc
+__pycache__/
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+/dist
+/out
+config.local.toml

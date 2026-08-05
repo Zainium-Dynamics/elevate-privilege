@@ -1,0 +1,16 @@
+[package]
+name = "pam-faillock"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "elevate-pam permit module"
+publish = false
+
+[lib]
+name = "pam_faillock"
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+elevate-pam = { workspace = true }
+libc = { workspace = true }

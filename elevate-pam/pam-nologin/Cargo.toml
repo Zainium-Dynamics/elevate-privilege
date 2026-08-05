@@ -1,0 +1,16 @@
+[package]
+name = "pam-nologin"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "elevate-pam nologin module"
+publish = false
+
+[lib]
+name = "pam_nologin"
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+elevate-pam = { workspace = true }
+libc = { workspace = true }

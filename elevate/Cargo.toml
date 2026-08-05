@@ -1,0 +1,48 @@
+[package]
+name = "elevate"
+description = "elevate / elev / viselev — memory-safe sudo/su for Zainium (elevate monorepo)"
+version = "1.0.0"
+license.workspace = true
+edition = "2024"
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+publish = false
+categories = ["command-line-interface"]
+exclude = ["docs/man", "target"]
+rust-version.workspace = true
+
+default-run = "elevate"
+
+[[bin]]
+name = "elevate"
+path = "src/bin/elevate.rs"
+
+[[bin]]
+name = "elev"
+path = "src/bin/elev.rs"
+
+[[bin]]
+name = "vielev"
+path = "src/bin/vielev.rs"
+
+[dependencies]
+libc = { workspace = true }
+glob = { workspace = true }
+elevate-paths = { workspace = true }
+
+[features]
+default = []
+pam-login = []
+apparmor = []
+gettext = []
+unstable-remote-sudoers = []
+dev = []
+do-not-use-all-features = []
+sudoedit = []
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = { level = "deny" }
+
+[lints.clippy]
+undocumented_unsafe_blocks = "warn"

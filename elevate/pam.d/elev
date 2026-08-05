@@ -1,0 +1,15 @@
+# /etc/pam.d/elev
+#
+# PAM service config for the Zainium "elev" binary (sudo-rs replacement for
+# su). This is read when `elev` calls pam_start("elev", ...) for a normal
+# (non-login) switch.
+
+auth       sufficient   pam_rootok.so
+auth       required     pam_unix.so
+
+account    required     pam_unix.so
+
+password   required     pam_unix.so
+
+session    required     pam_unix.so
+session    optional     pam_xauth.so

@@ -1,0 +1,32 @@
+# === musl target build config (fully static, cross-distro binary) ===
+#
+# Maqsad: Ek binary jo glibc AUR musl, dono tarah ke Linux systems par
+# chale, bina libgcc_s.so.1 ya glibc-version dependency ke. SIRF
+# libpam.so runtime par dynamically dlopen() hoti hai (link-time par
+# ZERO dependency -- dekhein src/pam/dynload.rs).
+#
+# crt-static ON hai -- iska matlab:
+#   - musl libc bhi binary ke andar hi static compile ho jati hai
+#   - binary kisi bhi system (glibc ya musl) par bina kisi C-library
+#     runtime dependency ke chal sakti hai, kyunke poora libc binary
+#     ke andar hi maujood hai
+#   - libgcc_s.so.1 ki zaroorat kabhi nahi padti (compiler_builtins
+#     bhi static compile hota hai)
+#
+# PAM (.so) is sab se mukhtalif/independent hai -- woh link-time par
+# bilkul link nahi ki ja rahi, balke program chalte waqt dlopen() se
+# load hoti hai (musl ka loader is mein glibc se zyada reliable hai,
+# static-pie binaries ke saath bhi). Isliye crt-static hone se PAM
+# loading par koi bura asar nahi padta.
+#
+# Result: ek single static binary, jo kisi bhi modern Linux distro par
+# (Fedora/glibc ho ya Alpine/musl ho) chal sakti hai, aur runtime par
+# sirf "libpam.so" (jo har distro par hoti hai) dhoondhegi.
+
+[build]
+target = "x86_64-unknown-linux-musl"
+
+[target.x86_64-unknown-linux-musl]
+rustflags = [
+    "-C", "target-feature=+crt-static",
+]

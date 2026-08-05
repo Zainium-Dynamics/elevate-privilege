@@ -1,0 +1,16 @@
+[package]
+name = "pam-unix"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "elevate-pam unix authentication module (shared object)"
+publish = false
+
+[lib]
+name = "pam_unix"
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+elevate-pam = { workspace = true }
+libc = { workspace = true }

@@ -1,0 +1,46 @@
+# =============================================================================
+# elevate-pam — system configuration (installs to /etc/elevate-pam/)
+# =============================================================================
+# SPDX-License-Identifier: MIT OR Apache-2.0
+# Copyright (c) 2026 Zainium Dynamics
+#
+# Zainium paths: NO /usr — only /bin, /sbin, /lib, /etc
+# Service stacks: /etc/elevate-pam/services/<name>.toml
+
+[project]
+name = "elevate-pam"
+version = "1.0.0"
+license = "MIT OR Apache-2.0"
+
+[build]
+shared = true
+static = false
+standalone = false
+
+[paths]
+prefix = ""
+bindir = "/bin"
+sbindir = "/sbin"
+libdir = "/lib"
+includedir = "/include"
+conf_dir = "/etc/elevate-pam"
+services_dir = "/etc/elevate-pam/services"
+services_dropin_dir = "/etc/elevate-pam/services.d"
+module_dir = "/lib/security"
+vendor_dir = "/lib/elevate-pam/services"
+default_service = "other"
+elevators_dir = "/etc/elevators"
+elevators_file = "/etc/elevators/elevate.toml"
+
+[security]
+fail_delay_usec = 2_000_000
+zeroize_authtok = true
+reject_service_paths = true
+max_include_depth = 32
+max_substack_level = 16
+max_stack_modules = 64
+
+[logging]
+facility = "authpriv"
+level = "info"
+ident = "elevate-pam"
