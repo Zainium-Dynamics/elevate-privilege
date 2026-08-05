@@ -85,7 +85,7 @@ pub fn hash_password_bcrypt(password: &str, cost: u32) -> CryptoResult<String> {
 fn system_crypt_verify(password: &str, hash: &str) -> CryptoResult<bool> {
     #[cfg(feature = "system_crypt")]
     {
-        return crate::system_crypt::verify(password, hash);
+        crate::system_crypt::verify(password, hash)
     }
     #[cfg(not(feature = "system_crypt"))]
     {

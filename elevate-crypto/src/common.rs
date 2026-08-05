@@ -49,6 +49,10 @@ pub const CRYPT_MAX_PASSPHRASE_SIZE: usize = 512;
 pub const CRYPT_GENSALT_OUTPUT_SIZE: usize = 192;
 
 /// Encode bytes as lowercase hex into `out` (must be 2× len).
+///
+/// Errors only on an undersized `out` buffer; a dedicated error type would
+/// be strictly more ceremony than this single bounds check warrants.
+#[allow(clippy::result_unit_err)]
 pub fn hex_encode(bytes: &[u8], out: &mut [u8]) -> Result<(), ()> {
     const HEX: &[u8; 16] = b"0123456789abcdef";
     if out.len() < bytes.len() * 2 {
