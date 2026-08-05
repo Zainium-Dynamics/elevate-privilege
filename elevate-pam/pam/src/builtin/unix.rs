@@ -344,47 +344,55 @@ fn rewrite_shadow_text(text: &str, user: &str, new_hash: &str, today: i64) -> Op
     found.then_some(out)
 }
 
+/// Parse `opasswd(5)`-style text (`user:hash1,hash2,...` per line) and
+/// return `user`'s stored hashes, most recent first. Pure and
+/// filesystem-free so it's directly unit-testable.
+fn opasswd_hashes_for<'a>(text: &'a str, user: &str) -> Vec<&'a str> {
+    for line in text.lines() {
+        if let Some((name, hashes)) = line.split_once(':') {
+            if name == user {
+                return hashes
+                    .split(',')
+                    .map(str::trim)
+                    .filter(|h| !h.is_empty())
+                    .collect();
+            }
+        }
+    }
+    Vec::new()
+}
+
 fn password_in_history(user: &str, plain: &str) -> bool {
     let path = elevate_paths::get().opasswd_file();
     let Ok(text) = fs::read_to_string(&path) else {
         return false;
     };
-    for line in text.lines() {
-        let Some((name, hashes)) = line.split_once(':') else {
-            continue;
-        };
-        if name != user {
-            continue;
+    for h in opasswd_hashes_for(&text, user) {
+        #[cfg(feature = "elevate_crypto")]
+        if elevate_crypto::verify_password(plain, h).unwrap_or(false) {
+            return true;
         }
-        for h in hashes.split(',') {
-            let h = h.trim();
-            if h.is_empty() {
-                continue;
-            }
-            #[cfg(feature = "elevate_crypto")]
-            if elevate_crypto::verify_password(plain, h).unwrap_or(false) {
-                return true;
-            }
-        }
+        #[cfg(not(feature = "elevate_crypto"))]
+        let _ = h;
     }
     false
 }
 
-fn record_password_history(user: &str, new_hash: &str, remember: usize) -> Result<(), String> {
-    let path = elevate_paths::get().opasswd_file();
+/// Insert `new_hash` at the front of `user`'s history, capped at
+/// `remember` entries, rewriting the full opasswd(5) text. Pure and
+/// filesystem-free so it's directly unit-testable.
+fn opasswd_update_text(text: &str, user: &str, new_hash: &str, remember: usize) -> String {
     let mut entries: Vec<(String, Vec<String>)> = Vec::new();
-    if let Ok(text) = fs::read_to_string(&path) {
-        for line in text.lines() {
-            if let Some((name, hashes)) = line.split_once(':') {
-                entries.push((
-                    name.to_string(),
-                    hashes
-                        .split(',')
-                        .map(|s| s.trim().to_string())
-                        .filter(|s| !s.is_empty())
-                        .collect(),
-                ));
-            }
+    for line in text.lines() {
+        if let Some((name, hashes)) = line.split_once(':') {
+            entries.push((
+                name.to_string(),
+                hashes
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect(),
+            ));
         }
     }
 
@@ -400,15 +408,23 @@ fn record_password_history(user: &str, new_hash: &str, remember: usize) -> Resul
         entries.push((user.to_string(), vec![new_hash.to_string()]));
     }
 
-    if let Some(parent) = std::path::Path::new(&path).parent() {
-        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
     let mut out = String::new();
     for (name, hashes) in &entries {
         out.push_str(name);
         out.push(':');
         out.push_str(&hashes.join(","));
         out.push('\n');
+    }
+    out
+}
+
+fn record_password_history(user: &str, new_hash: &str, remember: usize) -> Result<(), String> {
+    let path = elevate_paths::get().opasswd_file();
+    let existing = fs::read_to_string(&path).unwrap_or_default();
+    let out = opasswd_update_text(&existing, user, new_hash, remember);
+
+    if let Some(parent) = std::path::Path::new(&path).parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
     let mut f = OpenOptions::new()
         .write(true)
@@ -588,5 +604,83 @@ fn ct_eq_bytes(a: &[u8], b: &[u8]) -> bool {
             v |= x ^ y;
         }
         v == 0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SHADOW: &str = "\
+alice:$argon2id$old:19000:0:99999:7:::\n\
+bob:$argon2id$otherhash:19000:0:99999:7:::\n\
+# a comment line, preserved verbatim\n\
+charlie:!:19000:0:99999:7:::\n";
+
+    #[test]
+    fn rewrite_shadow_text_replaces_hash_and_lstchg_only() {
+        let out = rewrite_shadow_text(SHADOW, "bob", "$argon2id$newhash", 19500).unwrap();
+        let bob_line = out.lines().find(|l| l.starts_with("bob:")).unwrap();
+        assert_eq!(bob_line, "bob:$argon2id$newhash:19500:0:99999:7:::");
+        // Untouched lines (including the comment) survive verbatim.
+        assert!(out.contains("alice:$argon2id$old:19000:0:99999:7:::"));
+        assert!(out.contains("# a comment line, preserved verbatim"));
+        assert!(out.contains("charlie:!:19000:0:99999:7:::"));
+    }
+
+    #[test]
+    fn rewrite_shadow_text_none_for_unknown_user() {
+        assert!(rewrite_shadow_text(SHADOW, "nobody", "x", 1).is_none());
+    }
+
+    #[test]
+    fn rewrite_shadow_text_ignores_short_malformed_lines() {
+        // Fewer than 9 fields: line is passed through, not treated as a match.
+        let text = "bob:onlytwofields\n";
+        assert!(rewrite_shadow_text(text, "bob", "newhash", 1).is_none());
+    }
+
+    #[test]
+    fn opasswd_hashes_for_parses_and_splits() {
+        let text = "alice:h1,h2,h3\nbob:h4\n";
+        assert_eq!(opasswd_hashes_for(text, "alice"), vec!["h1", "h2", "h3"]);
+        assert_eq!(opasswd_hashes_for(text, "bob"), vec!["h4"]);
+        assert!(opasswd_hashes_for(text, "nobody").is_empty());
+    }
+
+    #[test]
+    fn opasswd_update_text_prepends_and_caps_at_remember() {
+        let text = "alice:h1,h2\n";
+        let out = opasswd_update_text(text, "alice", "h3", 2);
+        assert_eq!(opasswd_hashes_for(&out, "alice"), vec!["h3", "h1"]);
+    }
+
+    #[test]
+    fn opasswd_update_text_creates_new_user_entry() {
+        let out = opasswd_update_text("", "alice", "h1", 3);
+        assert_eq!(opasswd_hashes_for(&out, "alice"), vec!["h1"]);
+    }
+
+    #[test]
+    fn opasswd_update_text_leaves_other_users_untouched() {
+        let text = "alice:h1\nbob:h2,h3\n";
+        let out = opasswd_update_text(text, "alice", "h_new", 5);
+        assert_eq!(opasswd_hashes_for(&out, "bob"), vec!["h2", "h3"]);
+    }
+
+    #[test]
+    fn hash_new_password_default_is_not_bcrypt_prefixed() {
+        let h = hash_new_password("correct horse battery staple", &[]).unwrap();
+        assert!(
+            !h.starts_with("$2"),
+            "default hash should be argon2id, not bcrypt: {h}"
+        );
+    }
+
+    #[test]
+    fn hash_new_password_bcrypt_arg_produces_bcrypt_hash() {
+        let args = vec!["bcrypt".to_string(), "rounds=4".to_string()];
+        let h = hash_new_password("correct horse battery staple", &args).unwrap();
+        assert!(h.starts_with("$2"), "expected a bcrypt hash, got: {h}");
     }
 }
