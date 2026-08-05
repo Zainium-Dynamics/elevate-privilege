@@ -1,7 +1,7 @@
 //! pwck CLI implementation for ZainiumOS syshub with Blake3 & Ed25519 integrity support.
 
-use elevate_umbra::*;
 use elevate_crypto::{hash_blake3, verify_ed25519};
+use elevate_umbra::*;
 use std::fs;
 
 fn hex_encode(bytes: &[u8]) -> String {
@@ -81,7 +81,10 @@ fn main() {
     // 4. Check passwd entries without shadow
     for entry in &passwd_entries {
         if entry.passwd == "x" && !shadow_entries.iter().any(|s| s.name == entry.name) {
-            eprintln!("pwck: user '{}' expects shadow entry but none exists", entry.name);
+            eprintln!(
+                "pwck: user '{}' expects shadow entry but none exists",
+                entry.name
+            );
             errors += 1;
         }
     }

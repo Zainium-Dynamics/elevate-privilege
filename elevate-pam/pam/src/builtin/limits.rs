@@ -41,7 +41,7 @@ fn open_session(pamh: &mut PamHandle, _flags: i32, args: &[String]) -> PamStatus
 
 fn apply_limits(user: &str, conf: &str) -> Result<(), String> {
     let f = fs::File::open(conf).map_err(|e| e.to_string())?;
-    for line in BufReader::new(f).lines().flatten() {
+    for line in BufReader::new(f).lines().map_while(Result::ok) {
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') {
             continue;
@@ -87,9 +87,11 @@ fn set_one_limit(limit_type: &str, item: &str, value: &str) -> Result<(), String
     };
 
     let val: u64 = if value == "unlimited" || value == "infinity" {
-        libc::RLIM_INFINITY as u64
+        libc::RLIM_INFINITY
     } else {
-        value.parse().map_err(|e: std::num::ParseIntError| e.to_string())?
+        value
+            .parse()
+            .map_err(|e: std::num::ParseIntError| e.to_string())?
     };
 
     let mut rlim = libc::rlimit {

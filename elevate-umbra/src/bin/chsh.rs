@@ -14,7 +14,9 @@ fn main() {
         match args[i].as_str() {
             "-s" | "--shell" => {
                 i += 1;
-                if i < args.len() { new_shell = Some(args[i].clone()); }
+                if i < args.len() {
+                    new_shell = Some(args[i].clone());
+                }
             }
             arg if !arg.starts_with('-') => target_user = arg.to_string(),
             _ => {}
@@ -49,7 +51,11 @@ fn main() {
             let mut input = String::new();
             let _ = std::io::stdin().read_line(&mut input);
             let trimmed = input.trim();
-            if trimmed.is_empty() { p.shell.clone() } else { trimmed.to_string() }
+            if trimmed.is_empty() {
+                p.shell.clone()
+            } else {
+                trimmed.to_string()
+            }
         }
     };
 

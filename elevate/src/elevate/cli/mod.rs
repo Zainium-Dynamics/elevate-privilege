@@ -545,7 +545,10 @@ impl ElevateArg {
                             option = key
                         ))?;
                     }
-                    processed.push(ElevateArg::Argument("--".to_string() + key, value.to_string()));
+                    processed.push(ElevateArg::Argument(
+                        "--".to_string() + key,
+                        value.to_string(),
+                    ));
                 } else if Self::TAKES_ARGUMENT.contains(&unprefixed) {
                     let arg = String::from_utf8(arg.into_encoded_bytes()).expect("already checked");
                     if let Some(next) = arg_iter.next() {

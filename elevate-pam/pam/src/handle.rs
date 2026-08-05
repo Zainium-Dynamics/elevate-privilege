@@ -69,8 +69,10 @@ impl PamHandle {
         confdir: Option<&str>,
         global: GlobalConfig,
     ) -> PamResult<Self> {
-        let service_name =
-            crate::config::sanitize_service_name(service_name, global.security.reject_service_paths)?;
+        let service_name = crate::config::sanitize_service_name(
+            service_name,
+            global.security.reject_service_paths,
+        )?;
 
         let mut global = global;
         if let Some(dir) = confdir {
@@ -87,7 +89,8 @@ impl PamHandle {
                     #[cfg(feature = "legacy_pamd")]
                     {
                         if global.features.legacy_pamd {
-                            if let Ok(s) = crate::legacy_pamd::load_service(&service_name, confdir) {
+                            if let Ok(s) = crate::legacy_pamd::load_service(&service_name, confdir)
+                            {
                                 s
                             } else {
                                 return Err(e);
@@ -212,9 +215,7 @@ impl PamHandle {
                 return Ok(u.clone());
             }
         }
-        let prompt = prompt
-            .or(self.user_prompt.as_deref())
-            .unwrap_or("login: ");
+        let prompt = prompt.or(self.user_prompt.as_deref()).unwrap_or("login: ");
         #[cfg(feature = "std")]
         {
             let name = crate::conv::conv_echo_on(&self.conv, prompt)?;

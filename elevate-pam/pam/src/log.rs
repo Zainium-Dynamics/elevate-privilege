@@ -23,10 +23,7 @@ pub fn debug(pamh: &PamHandle, msg: &str) {
 }
 
 fn write(pamh: &PamHandle, level: &str, msg: &str) {
-    let mod_name = pamh
-        .current_module
-        .as_deref()
-        .unwrap_or("elevate-pam");
+    let mod_name = pamh.current_module.as_deref().unwrap_or("elevate-pam");
     let line = format!(
         "elevate-pam({}:{})[{}]: {}",
         pamh.service(),
@@ -58,7 +55,7 @@ fn write(pamh: &PamHandle, level: &str, msg: &str) {
 
     // Fallback
     eprintln!("{line}");
-    let _ = log::log!(
+    log::log!(
         match level {
             "error" => log::Level::Error,
             "warn" => log::Level::Warn,

@@ -51,7 +51,8 @@ impl PasswdFile {
         if !path.exists() {
             return Ok(Vec::new());
         }
-        let file = File::open(path).map_err(|e| format!("failed to open {}: {}", path.display(), e))?;
+        let file =
+            File::open(path).map_err(|e| format!("failed to open {}: {}", path.display(), e))?;
         let reader = BufReader::new(file);
         let mut entries = Vec::new();
 
@@ -64,7 +65,11 @@ impl PasswdFile {
             if let Some(entry) = PasswdEntry::parse_line(trimmed) {
                 entries.push(entry);
             } else {
-                eprintln!("warning: invalid line {} in {}", line_no + 1, path.display());
+                eprintln!(
+                    "warning: invalid line {} in {}",
+                    line_no + 1,
+                    path.display()
+                );
             }
         }
         Ok(entries)

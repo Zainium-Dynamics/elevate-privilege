@@ -21,11 +21,7 @@ pub fn hash_bcrypt(password: &str, cost: u32) -> CryptoResult<String> {
 
 /// Locked / disabled hash markers in shadow (`!`, `*`, `!!`).
 pub fn is_locked_hash(hash: &str) -> bool {
-    hash.is_empty()
-        || hash.starts_with('!')
-        || hash.starts_with('*')
-        || hash == "!!"
-        || hash == "*"
+    hash.is_empty() || hash.starts_with('!') || hash.starts_with('*') || hash == "!!" || hash == "*"
 }
 
 /// Constant-time compare two password hash strings when algorithms recompute full string.

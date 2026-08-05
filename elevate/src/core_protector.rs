@@ -107,9 +107,15 @@ fn matches_upgrade_override(command_base: &str, args: &[std::ffi::OsString]) -> 
     if command_base != UPGRADE_OVERRIDE_ARGV[0] {
         return false;
     }
-    let rest: Vec<String> = args.iter().map(|a| a.to_string_lossy().into_owned()).collect();
+    let rest: Vec<String> = args
+        .iter()
+        .map(|a| a.to_string_lossy().into_owned())
+        .collect();
     rest.len() == UPGRADE_OVERRIDE_ARGV.len() - 1
-        && rest.iter().zip(&UPGRADE_OVERRIDE_ARGV[1..]).all(|(a, b)| a == b)
+        && rest
+            .iter()
+            .zip(&UPGRADE_OVERRIDE_ARGV[1..])
+            .all(|(a, b)| a == b)
 }
 
 /// Main entry point: checks the given command (binary path/name +

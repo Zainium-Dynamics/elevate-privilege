@@ -23,9 +23,13 @@ pub fn load_service(service: &str, confdir: Option<&str>) -> PamResult<ServiceCo
     // Zainium: configured prefix preferred, fall back to plain /etc/pam.d
     let prefix = &elevate_paths::get().prefix;
     paths.push(PathBuf::from(format!("{prefix}/etc/pam.d/{name}")));
-    paths.push(PathBuf::from(format!("{prefix}/etc/elevate-pam/legacy-pamd/{name}")));
+    paths.push(PathBuf::from(format!(
+        "{prefix}/etc/elevate-pam/legacy-pamd/{name}"
+    )));
     paths.push(PathBuf::from(format!("/etc/pam.d/{name}")));
-    paths.push(PathBuf::from(format!("/etc/elevate-pam/legacy-pamd/{name}")));
+    paths.push(PathBuf::from(format!(
+        "/etc/elevate-pam/legacy-pamd/{name}"
+    )));
 
     for p in paths {
         // skip .toml in this legacy path
@@ -33,9 +37,8 @@ pub fn load_service(service: &str, confdir: Option<&str>) -> PamResult<ServiceCo
             continue;
         }
         if p.is_file() {
-            let text = fs::read_to_string(&p).map_err(|e| {
-                PamError::Io(alloc::format!("read {}: {e}", p.display()))
-            })?;
+            let text = fs::read_to_string(&p)
+                .map_err(|e| PamError::Io(alloc::format!("read {}: {e}", p.display())))?;
             return parse_pamd(&text);
         }
     }
@@ -64,7 +67,13 @@ pub fn parse_pamd(text: &str) -> PamResult<ServiceConfig> {
         let type_idx = if parts.len() >= 4
             && !matches!(
                 parts[0],
-                "auth" | "account" | "password" | "session" | "-auth" | "-account" | "-password"
+                "auth"
+                    | "account"
+                    | "password"
+                    | "session"
+                    | "-auth"
+                    | "-account"
+                    | "-password"
                     | "-session"
             ) {
             1

@@ -4,12 +4,12 @@
 //! The trait definitions can be part of some global crate in the future, if we support more
 //! than just the elevators file.
 
-use super::{Judgement, Elevators};
+use super::{Elevators, Judgement};
 use crate::common::{
-    HARDENED_ENUM_VALUE_0, HARDENED_ENUM_VALUE_1, HARDENED_ENUM_VALUE_2, ElevatePath,
+    ElevatePath, HARDENED_ENUM_VALUE_0, HARDENED_ENUM_VALUE_1, HARDENED_ENUM_VALUE_2,
 };
-use crate::exec::Umask;
 use crate::elevators::ast::{ExecControl, Tag};
+use crate::exec::Umask;
 use crate::system::{Hostname, User};
 use std::collections::HashSet;
 use std::time::Duration;

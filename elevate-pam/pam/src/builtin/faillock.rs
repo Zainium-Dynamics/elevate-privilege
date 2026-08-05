@@ -50,19 +50,30 @@ struct Opts {
 
 fn parse_opts(args: &[String]) -> Opts {
     Opts {
-        deny: arg_value(args, "deny").and_then(|s| s.parse().ok()).unwrap_or(3),
-        fail_interval: arg_value(args, "fail_interval").and_then(|s| s.parse().ok()).unwrap_or(900),
-        unlock_time: arg_value(args, "unlock_time").and_then(|s| s.parse().ok()).unwrap_or(600),
+        deny: arg_value(args, "deny")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(3),
+        fail_interval: arg_value(args, "fail_interval")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(900),
+        unlock_time: arg_value(args, "unlock_time")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(600),
         root_unlock_time: arg_value(args, "root_unlock_time").and_then(|s| s.parse().ok()),
         even_deny_root: arg_has(args, "even_deny_root"),
         local_users_only: arg_has(args, "local_users_only"),
         silent: arg_has(args, "silent"),
-        dir: arg_value(args, "dir").map(String::from).unwrap_or_else(|| elevate_paths::get().faillock_dir()),
+        dir: arg_value(args, "dir")
+            .map(String::from)
+            .unwrap_or_else(|| elevate_paths::get().faillock_dir()),
     }
 }
 
 fn now_secs() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
 }
 
 fn tally_path(dir: &str, user: &str) -> PathBuf {
@@ -132,7 +143,10 @@ fn check(pamh: &mut PamHandle, _flags: i32, args: &[String]) -> PamStatus {
                 if !opts.silent {
                     crate::log::warn(
                         pamh,
-                        &format!("faillock: user '{user}' locked out ({} failed attempts)", entries.len()),
+                        &format!(
+                            "faillock: user '{user}' locked out ({} failed attempts)",
+                            entries.len()
+                        ),
                     );
                 }
                 return PamStatus::new(PAM_AUTH_ERR);

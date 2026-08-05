@@ -10,9 +10,17 @@ fn main() {
     let is_shadow = env::args().any(|a| a == "-s" || a == "--shadow");
 
     let target_path = if is_vigr {
-        if is_shadow { gshadow_path() } else { group_path() }
+        if is_shadow {
+            gshadow_path()
+        } else {
+            group_path()
+        }
     } else {
-        if is_shadow { shadow_path() } else { passwd_path() }
+        if is_shadow {
+            shadow_path()
+        } else {
+            passwd_path()
+        }
     };
 
     println!("Editing {} safely with lockfile...", target_path.display());
@@ -29,9 +37,7 @@ fn main() {
         .or_else(|_| env::var("VISUAL"))
         .unwrap_or_else(|_| "/bin/vi".to_string());
 
-    let status = Command::new(&editor)
-        .arg(&target_path)
-        .status();
+    let status = Command::new(&editor).arg(&target_path).status();
 
     match status {
         Ok(s) if s.success() => println!("Finished editing {}", target_path.display()),

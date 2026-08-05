@@ -29,7 +29,11 @@ fn main() {
     // Set real and effective GID
     let ret = unsafe { libc::setgid(target_gid) };
     if ret != 0 {
-        eprintln!("newgrp: failed to set GID to {}: {}", target_gid, std::io::Error::last_os_error());
+        eprintln!(
+            "newgrp: failed to set GID to {}: {}",
+            target_gid,
+            std::io::Error::last_os_error()
+        );
         audit::audit_user_op("newgrp", "setgid", groupname, Some(target_gid), false);
         std::process::exit(E_NOPERM);
     }
@@ -42,7 +46,7 @@ fn main() {
     let c_shell = CString::new(shell.clone()).unwrap();
 
     let shell_arg = if shell.contains('/') {
-        format!("-{}", shell.split('/').last().unwrap_or("sh"))
+        format!("-{}", shell.split('/').next_back().unwrap_or("sh"))
     } else {
         format!("-{}", shell)
     };
@@ -53,6 +57,10 @@ fn main() {
         libc::execv(c_shell.as_ptr(), args_ptrs.as_ptr());
     }
 
-    eprintln!("newgrp: failed to exec shell {}: {}", shell, std::io::Error::last_os_error());
+    eprintln!(
+        "newgrp: failed to exec shell {}: {}",
+        shell,
+        std::io::Error::last_os_error()
+    );
     std::process::exit(E_CMD_NOEXEC);
 }

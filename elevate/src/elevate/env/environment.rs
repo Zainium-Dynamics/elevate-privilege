@@ -66,8 +66,14 @@ fn add_extra_env(
         "ELEVATE_GID".into(),
         context.current_user.gid.to_string().into(),
     );
-    environment.insert("ELEVATE_USER".into(), context.current_user.name.clone().into());
-    environment.insert("ELEVATE_HOME".into(), context.current_user.home.clone().into());
+    environment.insert(
+        "ELEVATE_USER".into(),
+        context.current_user.name.clone().into(),
+    );
+    environment.insert(
+        "ELEVATE_HOME".into(),
+        context.current_user.home.clone().into(),
+    );
     // The current SHELL variable should determine the shell to run when -s is passed, if none set use passwd entry
     environment
         .entry("SHELL".into())

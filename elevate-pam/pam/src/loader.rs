@@ -108,12 +108,7 @@ const STACK_KIND_OPEN: u8 = 4;
 const STACK_KIND_CLOSE: u8 = 5;
 const STACK_KIND_CH_AUTH: u8 = 6;
 
-fn bind_sm(
-    handle: *mut c_void,
-    symbol: &[u8],
-    _id: &ModuleId,
-    _kind: u8,
-) -> Option<ModuleFn> {
+fn bind_sm(handle: *mut c_void, symbol: &[u8], _id: &ModuleId, _kind: u8) -> Option<ModuleFn> {
     let sym = unsafe { libc::dlsym(handle, symbol.as_ptr() as *const c_char) };
     if sym.is_null() {
         return None;
@@ -128,12 +123,11 @@ fn bind_sm(
     Some(make_trampoline(f))
 }
 
+use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::Mutex;
-use once_cell::sync::Lazy;
 
-static TRAMPOLINES: Lazy<Mutex<HashMap<usize, SmFn>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
+static TRAMPOLINES: Lazy<Mutex<HashMap<usize, SmFn>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 // Fixed trampoline slots — ModuleFn cannot capture, so we use a single
 // approach: store SmFn in thread-local / map and use unique wrapper addresses.

@@ -40,7 +40,11 @@ fn main() {
 
     // Delete gshadow file
     if let Err(e) = fs::remove_file(&gshadow_p) {
-        eprintln!("grpunconv: warning: failed to remove gshadow file {}: {}", gshadow_p.display(), e);
+        eprintln!(
+            "grpunconv: warning: failed to remove gshadow file {}: {}",
+            gshadow_p.display(),
+            e
+        );
     } else {
         println!("grpunconv: removed gshadow file {}.", gshadow_p.display());
     }

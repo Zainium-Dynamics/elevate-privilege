@@ -11,7 +11,7 @@ use std::{
 };
 
 use crate::{
-    common::{Error, ElevatePath, ElevateString},
+    common::{ElevatePath, ElevateString, Error},
     cutils::*,
 };
 use interface::{DeviceId, GroupId, ProcessId, UserId};

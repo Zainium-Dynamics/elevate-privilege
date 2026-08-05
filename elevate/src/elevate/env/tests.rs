@@ -1,7 +1,7 @@
 use crate::common::resolve::CurrentUser;
 use crate::common::{CommandAndArguments, Context};
 use crate::elevate::cli::{ElevateAction, ElevateRunOptions};
-use crate::elevate::env::environment::{get_target_environment, Environment};
+use crate::elevate::env::environment::{Environment, get_target_environment};
 use crate::system::interface::{GroupId, UserId};
 use crate::system::{Group, Hostname, User};
 use std::collections::{HashMap, HashSet};
@@ -77,7 +77,8 @@ fn parse_env_commands(input: &str) -> Vec<(&str, Environment)> {
 
 fn create_test_context(elevate_options: ElevateRunOptions) -> Context {
     let path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin".to_string();
-    let command = CommandAndArguments::build_from_args(None, elevate_options.positional_args, &path);
+    let command =
+        CommandAndArguments::build_from_args(None, elevate_options.positional_args, &path);
 
     let current_user = CurrentUser::fake(User {
         uid: UserId::new(1000),

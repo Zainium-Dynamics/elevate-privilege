@@ -172,10 +172,10 @@ impl Elevators {
             am_user.is_root() || (request.user == am_user && in_group(am_user, request.group));
 
         let mut flags = check_permission(self, am_user, on_host, request);
-        if let Some(Tag { authenticate, .. }) = flags.as_mut() {
-            if skip_passwd {
-                *authenticate = Authenticate::Nopasswd;
-            }
+        if let Some(Tag { authenticate, .. }) = flags.as_mut()
+            && skip_passwd
+        {
+            *authenticate = Authenticate::Nopasswd;
         }
 
         Judgement {
@@ -394,7 +394,9 @@ fn group_cmd_specs_per_runas<'a>(
     })
 }
 
-fn read_elevators<R: io::Read>(mut reader: R) -> io::Result<Vec<basic_parser::Parsed<ElevatorLine>>> {
+fn read_elevators<R: io::Read>(
+    mut reader: R,
+) -> io::Result<Vec<basic_parser::Parsed<ElevatorLine>>> {
     // it's a bit frustrating that BufReader.chars() does not exist
     let mut buffer = String::new();
     reader.read_to_string(&mut buffer)?;

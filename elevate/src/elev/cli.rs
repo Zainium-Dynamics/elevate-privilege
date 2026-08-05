@@ -235,7 +235,9 @@ impl SuOptions {
             takes_argument: true,
             set: |elevate_options, argument| {
                 if let Some(value) = argument {
-                    elevate_options.group.push(ElevateString::from_cli_string(value));
+                    elevate_options
+                        .group
+                        .push(ElevateString::from_cli_string(value));
                     Ok(())
                 } else {
                     Err("no group provided".into())

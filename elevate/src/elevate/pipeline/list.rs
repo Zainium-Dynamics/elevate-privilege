@@ -8,7 +8,7 @@ use std::{
 use crate::{
     common::{Context, DisplayOsStr, Error},
     elevate::cli::ElevateListOptions,
-    elevators::{Authorization, ListRequest, Request, Elevators},
+    elevators::{Authorization, Elevators, ListRequest, Request},
     system::User,
 };
 

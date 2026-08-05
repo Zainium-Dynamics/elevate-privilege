@@ -40,7 +40,11 @@ fn main() {
 
     // Delete shadow file
     if let Err(e) = fs::remove_file(&shadow_p) {
-        eprintln!("pwunconv: warning: failed to remove shadow file {}: {}", shadow_p.display(), e);
+        eprintln!(
+            "pwunconv: warning: failed to remove shadow file {}: {}",
+            shadow_p.display(),
+            e
+        );
     } else {
         println!("pwunconv: removed shadow file {}.", shadow_p.display());
     }

@@ -105,8 +105,8 @@ pub fn conv_echo_off(conv: &PamConv, prompt: &str) -> PamResult<String> {
     let f = conv
         .conv
         .ok_or_else(|| PamError::Status(PamStatus::new(PAM_CONV_ERR)))?;
-    let c_prompt = CString::new(prompt)
-        .map_err(|_| PamError::Status(PamStatus::new(PAM_CONV_ERR)))?;
+    let c_prompt =
+        CString::new(prompt).map_err(|_| PamError::Status(PamStatus::new(PAM_CONV_ERR)))?;
     let message = CPamMessage {
         msg_style: PAM_PROMPT_ECHO_OFF,
         msg: c_prompt.as_ptr(),
@@ -162,8 +162,8 @@ pub fn conv_echo_on(conv: &PamConv, prompt: &str) -> PamResult<String> {
     let f = conv
         .conv
         .ok_or_else(|| PamError::Status(PamStatus::new(PAM_CONV_ERR)))?;
-    let c_prompt = CString::new(prompt)
-        .map_err(|_| PamError::Status(PamStatus::new(PAM_CONV_ERR)))?;
+    let c_prompt =
+        CString::new(prompt).map_err(|_| PamError::Status(PamStatus::new(PAM_CONV_ERR)))?;
     let message = CPamMessage {
         msg_style: PAM_PROMPT_ECHO_ON,
         msg: c_prompt.as_ptr(),

@@ -35,6 +35,10 @@ unsafe fn pamh_mut<'a>(pamh: *mut c_void) -> Option<&'a mut PamHandle> {
 
 macro_rules! sm {
     ($name:ident, $method:ident) => {
+        /// # Safety
+        /// `pamh` must be null or a valid handle from `pam_start`; `argv` must
+        /// point to `argc` valid, non-null, NUL-terminated C strings.
+
         #[no_mangle]
         pub unsafe extern "C" fn $name(
             pamh: *mut c_void,

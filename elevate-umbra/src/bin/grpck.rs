@@ -1,7 +1,7 @@
 //! grpck CLI implementation for ZainiumOS syshub with Blake3 & Ed25519 integrity support.
 
-use elevate_umbra::*;
 use elevate_crypto::{hash_blake3, verify_ed25519};
+use elevate_umbra::*;
 use std::fs;
 
 fn hex_encode(bytes: &[u8]) -> String {

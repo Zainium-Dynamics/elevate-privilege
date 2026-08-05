@@ -2,10 +2,12 @@ use std::env;
 use std::ffi::OsString;
 
 use crate::common::{Error, HARDENED_ENUM_VALUE_0, HARDENED_ENUM_VALUE_1, HARDENED_ENUM_VALUE_2};
-use crate::exec::RunOptions;
-use crate::elevate::{ElevateEditOptions, ElevateListOptions, ElevateRunOptions, ElevateValidateOptions};
+use crate::elevate::{
+    ElevateEditOptions, ElevateListOptions, ElevateRunOptions, ElevateValidateOptions,
+};
 use crate::elevators::Elevators;
 use crate::elevators::{DirChange, Restrictions};
+use crate::exec::RunOptions;
 use crate::system::{Group, Hostname, User, audit::elevate_call};
 
 use super::{
@@ -53,8 +55,11 @@ impl Context {
         let hostname = Hostname::resolve();
         let current_user = CurrentUser::resolve()?;
 
-        let (target_user, target_group) =
-            resolve_target_user_and_group(&elevate_options.user, &elevate_options.group, &current_user)?;
+        let (target_user, target_group) = resolve_target_user_and_group(
+            &elevate_options.user,
+            &elevate_options.group,
+            &current_user,
+        )?;
 
         let launch = if elevate_options.login {
             LaunchType::Login
@@ -83,7 +88,9 @@ impl Context {
             })?
         };
 
-        let prompt = elevate_options.prompt.or_else(|| env::var("ELEVATE_PROMPT").ok());
+        let prompt = elevate_options
+            .prompt
+            .or_else(|| env::var("ELEVATE_PROMPT").ok());
 
         Ok(Context {
             hostname,
@@ -109,8 +116,11 @@ impl Context {
         let hostname = Hostname::resolve();
         let current_user = CurrentUser::resolve()?;
 
-        let (target_user, target_group) =
-            resolve_target_user_and_group(&elevate_options.user, &elevate_options.group, &current_user)?;
+        let (target_user, target_group) = resolve_target_user_and_group(
+            &elevate_options.user,
+            &elevate_options.group,
+            &current_user,
+        )?;
 
         // resolve file arguments; if something can't be resolved, don't add it to the "edit" list
         let resolved_args = elevate_call(&target_user, &target_group, || {
@@ -174,8 +184,11 @@ impl Context {
     pub fn from_validate_opts(elevate_options: ElevateValidateOptions) -> Result<Context, Error> {
         let hostname = Hostname::resolve();
         let current_user = CurrentUser::resolve()?;
-        let (target_user, target_group) =
-            resolve_target_user_and_group(&elevate_options.user, &elevate_options.group, &current_user)?;
+        let (target_user, target_group) = resolve_target_user_and_group(
+            &elevate_options.user,
+            &elevate_options.group,
+            &current_user,
+        )?;
 
         Ok(Context {
             hostname,
@@ -202,8 +215,11 @@ impl Context {
     ) -> Result<Context, Error> {
         let hostname = Hostname::resolve();
         let current_user = CurrentUser::resolve()?;
-        let (target_user, target_group) =
-            resolve_target_user_and_group(&elevate_options.user, &elevate_options.group, &current_user)?;
+        let (target_user, target_group) = resolve_target_user_and_group(
+            &elevate_options.user,
+            &elevate_options.group,
+            &current_user,
+        )?;
 
         let override_path = policy.search_path(&hostname, &current_user, &target_user);
 

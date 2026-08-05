@@ -234,7 +234,13 @@ impl PamContext {
         let c_user = CString::new(user)?;
         // SAFETY: `self.pamh` contains a correct handle (obtained from `pam_start`); furthermore,
         // `c_user.as_ptr()` will point to a correct null-terminated string.
-        pam_err(unsafe { (dynload::pam_lib().pam_set_item)(self.pamh, PAM_USER as _, c_user.as_ptr() as *const c_void) })
+        pam_err(unsafe {
+            (dynload::pam_lib().pam_set_item)(
+                self.pamh,
+                PAM_USER as _,
+                c_user.as_ptr() as *const c_void,
+            )
+        })
     }
 
     /// Get the user that is currently active in the PAM handle
@@ -264,7 +270,13 @@ impl PamContext {
         let data = CString::new(tty_path.as_ref().as_bytes())?;
         // SAFETY: `self.pamh` contains a correct handle (obtained from `pam_start`); furthermore,
         // `data.as_ptr()` will point to a correct null-terminated string.
-        pam_err(unsafe { (dynload::pam_lib().pam_set_item)(self.pamh, PAM_TTY as _, data.as_ptr() as *const c_void) })
+        pam_err(unsafe {
+            (dynload::pam_lib().pam_set_item)(
+                self.pamh,
+                PAM_TTY as _,
+                data.as_ptr() as *const c_void,
+            )
+        })
     }
 
     // Set the user that requested the actions in this PAM instance.
@@ -272,7 +284,13 @@ impl PamContext {
         let data = CString::new(user.as_bytes())?;
         // SAFETY: `self.pamh` contains a correct handle (obtained from `pam_start`); furthermore,
         // `data.as_ptr()` will point to a correct null-terminated string.
-        pam_err(unsafe { (dynload::pam_lib().pam_set_item)(self.pamh, PAM_RUSER as _, data.as_ptr() as *const c_void) })
+        pam_err(unsafe {
+            (dynload::pam_lib().pam_set_item)(
+                self.pamh,
+                PAM_RUSER as _,
+                data.as_ptr() as *const c_void,
+            )
+        })
     }
 
     /// Re-initialize the credentials stored in PAM
@@ -320,7 +338,9 @@ impl PamContext {
         // do anything with it
         if self.session_started {
             // SAFETY: `self.pamh` contains a correct handle (obtained from `pam_start`).
-            let _ = pam_err(unsafe { (dynload::pam_lib().pam_close_session)(self.pamh, self.silent_flag()) });
+            let _ = pam_err(unsafe {
+                (dynload::pam_lib().pam_close_session)(self.pamh, self.silent_flag())
+            });
             self.session_started = false;
         }
     }

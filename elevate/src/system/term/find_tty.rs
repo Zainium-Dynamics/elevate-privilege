@@ -47,10 +47,10 @@ fn dev_check(path: &Path, tty_dev: DeviceId) -> Option<OsString> {
 
 fn find_tty_in_dir(dir: &Path, tty_dev: DeviceId) -> Option<OsString> {
     for entry in fs::read_dir(dir).ok()?.filter_map(|entry| entry.ok()) {
-        if let Ok(metadata) = entry.metadata() {
-            if is_our_tty(metadata, tty_dev) {
-                return Some(entry.path().into());
-            }
+        if let Ok(metadata) = entry.metadata()
+            && is_our_tty(metadata, tty_dev)
+        {
+            return Some(entry.path().into());
         }
     }
 

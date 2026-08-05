@@ -1,7 +1,7 @@
 //! umbra-sign CLI — Ed25519 & Blake3 signing/verification utility for ZainiumOS syshub.
 
-use elevate_umbra::*;
 use elevate_crypto::{generate_ed25519_keypair, hash_blake3, sign_ed25519, verify_ed25519};
+use elevate_umbra::*;
 use std::env;
 use std::fs;
 
@@ -28,11 +28,19 @@ fn main() {
         "keygen" => {
             let (pub_bytes, sec_bytes) = generate_ed25519_keypair();
             if let Err(e) = fs::write(&key_path, sec_bytes) {
-                eprintln!("umbra-sign: failed to write private key {}: {}", key_path.display(), e);
+                eprintln!(
+                    "umbra-sign: failed to write private key {}: {}",
+                    key_path.display(),
+                    e
+                );
                 std::process::exit(1);
             }
             if let Err(e) = fs::write(&pub_path, pub_bytes) {
-                eprintln!("umbra-sign: failed to write public key {}: {}", pub_path.display(), e);
+                eprintln!(
+                    "umbra-sign: failed to write public key {}: {}",
+                    pub_path.display(),
+                    e
+                );
                 std::process::exit(1);
             }
             println!("umbra-sign: generated Ed25519 keypair:");
@@ -66,7 +74,10 @@ fn main() {
             });
 
             let sec_bytes = fs::read(&key_path).unwrap_or_else(|_| {
-                eprintln!("umbra-sign: private key {} missing. Run 'umbra-sign keygen' first.", key_path.display());
+                eprintln!(
+                    "umbra-sign: private key {} missing. Run 'umbra-sign keygen' first.",
+                    key_path.display()
+                );
                 std::process::exit(1);
             });
 
@@ -111,7 +122,11 @@ fn main() {
             });
 
             let pub_bytes = fs::read(&pub_path).unwrap_or_else(|e| {
-                eprintln!("umbra-sign: failed to read public key {}: {}", pub_path.display(), e);
+                eprintln!(
+                    "umbra-sign: failed to read public key {}: {}",
+                    pub_path.display(),
+                    e
+                );
                 std::process::exit(1);
             });
 

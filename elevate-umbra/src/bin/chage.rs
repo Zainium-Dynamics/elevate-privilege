@@ -12,7 +12,9 @@ fn main() {
         eprintln!("  -m, --mindays MIN     minimum number of days between password changes");
         eprintln!("  -M, --maxdays MAX     maximum number of days password is valid");
         eprintln!("  -W, --warndays WARN   number of days warning before password expires");
-        eprintln!("  -I, --inactive INACT  number of days after password expires until account is locked");
+        eprintln!(
+            "  -I, --inactive INACT  number of days after password expires until account is locked"
+        );
         std::process::exit(1);
     }
 
@@ -29,19 +31,27 @@ fn main() {
             "-l" | "--list" => list_only = true,
             "-m" | "--mindays" => {
                 i += 1;
-                if i < args.len() { min_days = args[i].parse().ok(); }
+                if i < args.len() {
+                    min_days = args[i].parse().ok();
+                }
             }
             "-M" | "--maxdays" => {
                 i += 1;
-                if i < args.len() { max_days = args[i].parse().ok(); }
+                if i < args.len() {
+                    max_days = args[i].parse().ok();
+                }
             }
             "-W" | "--warndays" => {
                 i += 1;
-                if i < args.len() { warn_days = args[i].parse().ok(); }
+                if i < args.len() {
+                    warn_days = args[i].parse().ok();
+                }
             }
             "-I" | "--inactive" => {
                 i += 1;
-                if i < args.len() { inact_days = args[i].parse().ok(); }
+                if i < args.len() {
+                    inact_days = args[i].parse().ok();
+                }
             }
             arg if !arg.starts_with('-') => username = arg.to_string(),
             _ => {}
@@ -68,7 +78,12 @@ fn main() {
         println!("Minimum password age (days): {}", s.min.unwrap_or(0));
         println!("Maximum password age (days): {}", s.max.unwrap_or(99999));
         println!("Password warning days: {}", s.warn.unwrap_or(7));
-        println!("Account inactive days: {}", s.inact.map(|i| i.to_string()).unwrap_or_else(|| "never".into()));
+        println!(
+            "Account inactive days: {}",
+            s.inact
+                .map(|i| i.to_string())
+                .unwrap_or_else(|| "never".into())
+        );
         return;
     }
 
@@ -81,12 +96,23 @@ fn main() {
     };
 
     let mut shadow_entries = shadow_entries;
-    let s = shadow_entries.iter_mut().find(|e| e.name == username).unwrap();
+    let s = shadow_entries
+        .iter_mut()
+        .find(|e| e.name == username)
+        .unwrap();
 
-    if let Some(m) = min_days { s.min = Some(m); }
-    if let Some(m) = max_days { s.max = Some(m); }
-    if let Some(w) = warn_days { s.warn = Some(w); }
-    if let Some(i) = inact_days { s.inact = Some(i); }
+    if let Some(m) = min_days {
+        s.min = Some(m);
+    }
+    if let Some(m) = max_days {
+        s.max = Some(m);
+    }
+    if let Some(w) = warn_days {
+        s.warn = Some(w);
+    }
+    if let Some(i) = inact_days {
+        s.inact = Some(i);
+    }
 
     if let Err(e) = ShadowFile::save(&shadow_p, &shadow_entries) {
         eprintln!("chage: failed to save shadow: {}", e);

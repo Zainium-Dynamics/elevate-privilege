@@ -238,10 +238,10 @@ fn exec_command(
     }
 
     // Restore the signal mask now that the handlers have been setup.
-    if let Some(set) = original_set {
-        if let Err(err) = set.set_mask() {
-            dev_warn!("cannot restore signal mask: {err}");
-        }
+    if let Some(set) = original_set
+        && let Err(err) = set.set_mask()
+    {
+        dev_warn!("cannot restore signal mask: {err}");
     }
 
     if let Err(err) = mark_fds_as_cloexec() {

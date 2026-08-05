@@ -37,9 +37,8 @@ extern "C" fn cli_conv(
         return PAM_CONV_ERR;
     }
     let n = num_msg as usize;
-    let table = unsafe {
-        libc::calloc(n, core::mem::size_of::<CPamResponse>()) as *mut CPamResponse
-    };
+    let table =
+        unsafe { libc::calloc(n, core::mem::size_of::<CPamResponse>()) as *mut CPamResponse };
     if table.is_null() {
         return PAM_BUF_ERR;
     }

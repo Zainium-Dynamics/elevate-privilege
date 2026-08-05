@@ -50,6 +50,11 @@ fn cstr_to_str<'a>(p: *const c_char) -> Option<&'a str> {
 }
 
 /// `pam_start` — begin a PAM transaction.
+///
+/// # Safety
+/// `service_name` and `pam_conversation` must be valid, non-null,
+/// NUL-terminated/well-formed per the PAM application contract; `user` may
+/// be null; `pamh` must be a valid, non-null out-pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pam_start(
     service_name: *const c_char,
@@ -61,6 +66,10 @@ pub unsafe extern "C" fn pam_start(
 }
 
 /// `pam_start_confdir` — begin a PAM transaction with alternate conf dir.
+///
+/// # Safety
+/// Same contract as [`pam_start`]; `confdir` may additionally be null or a
+/// valid NUL-terminated C string.
 #[no_mangle]
 pub unsafe extern "C" fn pam_start_confdir(
     service_name: *const c_char,
@@ -95,12 +104,17 @@ pub unsafe extern "C" fn pam_start_confdir(
 }
 
 /// `pam_end` — terminate a PAM transaction.
+///
+/// # Safety
+/// `pamh` must be null or a handle previously returned via `pam_start`'s
+/// out-pointer, not already passed to `pam_end`.
 #[no_mangle]
 pub unsafe extern "C" fn pam_end(pamh: *mut PamHandleT, pam_status: c_int) -> c_int {
     if pamh.is_null() {
         return PAM_SYSTEM_ERR;
     }
-    // SAFETY: pamh from pam_start
+    // SAFETY: pamh is non-null and, per this function's own safety
+    // contract, a handle from pam_start not yet freed.
     let handle = unsafe { alloc::boxed::Box::from_raw(pamh) };
     match handle.end(pam_status) {
         Ok(()) => PAM_SUCCESS,
@@ -109,6 +123,9 @@ pub unsafe extern "C" fn pam_end(pamh: *mut PamHandleT, pam_status: c_int) -> c_
 }
 
 /// `pam_authenticate`.
+///
+/// # Safety
+/// `pamh` must be null or a valid handle from `pam_start`.
 #[no_mangle]
 pub unsafe extern "C" fn pam_authenticate(pamh: *mut PamHandleT, flags: c_int) -> c_int {
     let Some(h) = (unsafe { handle_mut(pamh) }) else {
@@ -121,6 +138,9 @@ pub unsafe extern "C" fn pam_authenticate(pamh: *mut PamHandleT, flags: c_int) -
 }
 
 /// `pam_setcred`.
+///
+/// # Safety
+/// `pamh` must be null or a valid handle from `pam_start`.
 #[no_mangle]
 pub unsafe extern "C" fn pam_setcred(pamh: *mut PamHandleT, flags: c_int) -> c_int {
     let Some(h) = (unsafe { handle_mut(pamh) }) else {
@@ -133,6 +153,9 @@ pub unsafe extern "C" fn pam_setcred(pamh: *mut PamHandleT, flags: c_int) -> c_i
 }
 
 /// `pam_acct_mgmt`.
+///
+/// # Safety
+/// `pamh` must be null or a valid handle from `pam_start`.
 #[no_mangle]
 pub unsafe extern "C" fn pam_acct_mgmt(pamh: *mut PamHandleT, flags: c_int) -> c_int {
     let Some(h) = (unsafe { handle_mut(pamh) }) else {
@@ -145,6 +168,9 @@ pub unsafe extern "C" fn pam_acct_mgmt(pamh: *mut PamHandleT, flags: c_int) -> c
 }
 
 /// `pam_open_session`.
+///
+/// # Safety
+/// `pamh` must be null or a valid handle from `pam_start`.
 #[no_mangle]
 pub unsafe extern "C" fn pam_open_session(pamh: *mut PamHandleT, flags: c_int) -> c_int {
     let Some(h) = (unsafe { handle_mut(pamh) }) else {
@@ -157,6 +183,9 @@ pub unsafe extern "C" fn pam_open_session(pamh: *mut PamHandleT, flags: c_int) -
 }
 
 /// `pam_close_session`.
+///
+/// # Safety
+/// `pamh` must be null or a valid handle from `pam_start`.
 #[no_mangle]
 pub unsafe extern "C" fn pam_close_session(pamh: *mut PamHandleT, flags: c_int) -> c_int {
     let Some(h) = (unsafe { handle_mut(pamh) }) else {
@@ -169,6 +198,9 @@ pub unsafe extern "C" fn pam_close_session(pamh: *mut PamHandleT, flags: c_int) 
 }
 
 /// `pam_chauthtok`.
+///
+/// # Safety
+/// `pamh` must be null or a valid handle from `pam_start`.
 #[no_mangle]
 pub unsafe extern "C" fn pam_chauthtok(pamh: *mut PamHandleT, flags: c_int) -> c_int {
     let Some(h) = (unsafe { handle_mut(pamh) }) else {
@@ -181,6 +213,12 @@ pub unsafe extern "C" fn pam_chauthtok(pamh: *mut PamHandleT, flags: c_int) -> c
 }
 
 /// `pam_set_item`.
+///
+/// # Safety
+/// `pamh` must be null or a valid handle from `pam_start`. `item` must
+/// either be null or point to data of the type its `item_type` implies for
+/// the duration of this call (`pam_conv` for [`ItemType::Conv`], otherwise
+/// a NUL-terminated C string).
 #[no_mangle]
 pub unsafe extern "C" fn pam_set_item(
     pamh: *mut PamHandleT,
@@ -219,6 +257,10 @@ pub unsafe extern "C" fn pam_set_item(
 }
 
 /// `pam_get_item`.
+///
+/// # Safety
+/// `pamh` must be null or a valid handle from `pam_start`; `item` must be
+/// a valid, non-null, properly-aligned out-pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pam_get_item(
     pamh: *const PamHandleT,
@@ -259,6 +301,10 @@ pub unsafe extern "C" fn pam_get_item(
 }
 
 /// `pam_strerror`.
+///
+/// # Safety
+/// `_pamh` is accepted for ABI compatibility but not dereferenced; no
+/// pointer safety requirements beyond that.
 #[no_mangle]
 pub unsafe extern "C" fn pam_strerror(_pamh: *mut PamHandleT, errnum: c_int) -> *const c_char {
     let s = crate::constants::pam_strerror_static(errnum);
@@ -266,6 +312,10 @@ pub unsafe extern "C" fn pam_strerror(_pamh: *mut PamHandleT, errnum: c_int) -> 
 }
 
 /// `pam_putenv`.
+///
+/// # Safety
+/// `pamh` must be null or a valid handle from `pam_start`; `name_value`
+/// must be null or a valid NUL-terminated C string.
 #[no_mangle]
 pub unsafe extern "C" fn pam_putenv(pamh: *mut PamHandleT, name_value: *const c_char) -> c_int {
     let Some(h) = (unsafe { handle_mut(pamh) }) else {
@@ -281,11 +331,14 @@ pub unsafe extern "C" fn pam_putenv(pamh: *mut PamHandleT, name_value: *const c_
 }
 
 /// `pam_getenv`.
+///
+/// # Safety
+/// `pamh` must be null or a valid handle from `pam_start`; `name` must be
+/// null or a valid NUL-terminated C string. The returned pointer, if
+/// non-null, is valid only until the next call that mutates the handle's
+/// environment or `pam_end`.
 #[no_mangle]
-pub unsafe extern "C" fn pam_getenv(
-    pamh: *mut PamHandleT,
-    name: *const c_char,
-) -> *const c_char {
+pub unsafe extern "C" fn pam_getenv(pamh: *mut PamHandleT, name: *const c_char) -> *const c_char {
     let Some(h) = (unsafe { handle_mut(pamh) }) else {
         return ptr::null();
     };
@@ -299,6 +352,11 @@ pub unsafe extern "C" fn pam_getenv(
 }
 
 /// `pam_getenvlist`.
+///
+/// # Safety
+/// `pamh` must be null or a valid handle from `pam_start`. Per the PAM
+/// application contract, the caller takes ownership of the returned array
+/// (and each string in it) and must free it.
 #[no_mangle]
 pub unsafe extern "C" fn pam_getenvlist(pamh: *mut PamHandleT) -> *mut *mut c_char {
     let Some(h) = (unsafe { handle_mut(pamh) }) else {
@@ -311,6 +369,9 @@ pub unsafe extern "C" fn pam_getenvlist(pamh: *mut PamHandleT) -> *mut *mut c_ch
 }
 
 /// `pam_fail_delay`.
+///
+/// # Safety
+/// `pamh` must be null or a valid handle from `pam_start`.
 #[no_mangle]
 pub unsafe extern "C" fn pam_fail_delay(pamh: *mut PamHandleT, musec_delay: u32) -> c_int {
     let Some(h) = (unsafe { handle_mut(pamh) }) else {
@@ -323,6 +384,13 @@ pub unsafe extern "C" fn pam_fail_delay(pamh: *mut PamHandleT, musec_delay: u32)
 }
 
 /// `pam_set_data`.
+///
+/// # Safety
+/// `pamh` must be null or a valid handle from `pam_start`;
+/// `module_data_name` must be null or a valid NUL-terminated C string.
+/// `data` and `cleanup` are opaque to this function and stored as given;
+/// the caller is responsible for their validity per the PAM module
+/// contract.
 #[no_mangle]
 pub unsafe extern "C" fn pam_set_data(
     pamh: *mut PamHandleT,
@@ -344,6 +412,11 @@ pub unsafe extern "C" fn pam_set_data(
 }
 
 /// `pam_get_data`.
+///
+/// # Safety
+/// `pamh` must be null or a valid handle from `pam_start`;
+/// `module_data_name` must be null or a valid NUL-terminated C string;
+/// `data` must be a valid, non-null out-pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pam_get_data(
     pamh: *const PamHandleT,
@@ -376,6 +449,11 @@ pub unsafe extern "C" fn pam_get_data(
 }
 
 /// `pam_get_user`.
+///
+/// # Safety
+/// `pamh` must be null or a valid handle from `pam_start`; `user` must be
+/// a valid, non-null out-pointer; `prompt` must be null or a valid
+/// NUL-terminated C string.
 #[no_mangle]
 pub unsafe extern "C" fn pam_get_user(
     pamh: *mut PamHandleT,

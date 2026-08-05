@@ -1,13 +1,12 @@
 //! Module stack dispatch (Linux-PAM `_pam_dispatch` semantics).
 
-
 use alloc::vec::Vec;
 
 use crate::config::{BuildCategory, ControlFlag, ModuleEntry};
 use crate::constants::*;
-use crate::error::{PamResult, PamStatus};
 #[cfg(not(feature = "std"))]
 use crate::error::PamError;
+use crate::error::{PamResult, PamStatus};
 use crate::handle::PamHandle;
 use crate::types::{Action, StackKind};
 

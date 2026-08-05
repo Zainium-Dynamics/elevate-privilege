@@ -18,8 +18,8 @@ pub fn copy_tree(src: &Path, dst: &Path, new_uid: u32, new_gid: u32) -> Result<(
             .map_err(|e| format!("failed to create {}: {}", dst.display(), e))?;
     }
 
-    let entries = fs::read_dir(src)
-        .map_err(|e| format!("failed to read {}: {}", src.display(), e))?;
+    let entries =
+        fs::read_dir(src).map_err(|e| format!("failed to read {}: {}", src.display(), e))?;
 
     for entry in entries {
         let entry = entry.map_err(|e| format!("readdir error: {}", e))?;
@@ -48,8 +48,14 @@ pub fn copy_tree(src: &Path, dst: &Path, new_uid: u32, new_gid: u32) -> Result<(
             copy_tree(&src_path, &dst_path, new_uid, new_gid)?;
         } else if meta.is_file() {
             // Copy file
-            fs::copy(&src_path, &dst_path)
-                .map_err(|e| format!("copy {} -> {}: {}", src_path.display(), dst_path.display(), e))?;
+            fs::copy(&src_path, &dst_path).map_err(|e| {
+                format!(
+                    "copy {} -> {}: {}",
+                    src_path.display(),
+                    dst_path.display(),
+                    e
+                )
+            })?;
 
             // Preserve permissions
             let mode = meta.permissions().mode() & 0o7777;
@@ -119,8 +125,8 @@ pub fn remove_tree(root: &Path, remove_root: bool) -> Result<(), String> {
         return Err(format!("'{}' is not a directory", root.display()));
     }
 
-    let entries = fs::read_dir(root)
-        .map_err(|e| format!("failed to read {}: {}", root.display(), e))?;
+    let entries =
+        fs::read_dir(root).map_err(|e| format!("failed to read {}: {}", root.display(), e))?;
 
     for entry in entries {
         let entry = entry.map_err(|e| format!("readdir error: {}", e))?;
@@ -135,8 +141,7 @@ pub fn remove_tree(root: &Path, remove_root: bool) -> Result<(), String> {
     }
 
     if remove_root {
-        fs::remove_dir(root)
-            .map_err(|e| format!("failed to rmdir {}: {}", root.display(), e))?;
+        fs::remove_dir(root).map_err(|e| format!("failed to rmdir {}: {}", root.display(), e))?;
     }
 
     Ok(())

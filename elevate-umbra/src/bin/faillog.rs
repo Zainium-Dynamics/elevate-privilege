@@ -33,7 +33,10 @@ fn main() {
         println!("faillog: reset failure records for {}", user);
         audit::audit_info("faillog", &format!("reset failure counters for {}", user));
     } else {
-        println!("{:<16} {:<10} {:<10} {:<20}", "Username", "Failures", "Maximum", "Latest");
+        println!(
+            "{:<16} {:<10} {:<10} {:<20}",
+            "Username", "Failures", "Maximum", "Latest"
+        );
         println!("{}", "-".repeat(60));
         let user = target_user.as_deref().unwrap_or("root");
         println!("{:<16} {:<10} {:<10} {:<20}", user, 0, 5, "Never");

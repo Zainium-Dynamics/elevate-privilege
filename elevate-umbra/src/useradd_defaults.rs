@@ -37,7 +37,7 @@ impl UseraddDefaults {
         }
 
         if let Ok(file) = File::open(path) {
-            for line in BufReader::new(file).lines().flatten() {
+            for line in BufReader::new(file).lines().map_while(Result::ok) {
                 let line = line.trim();
                 if line.is_empty() || line.starts_with('#') {
                     continue;
@@ -53,10 +53,18 @@ impl UseraddDefaults {
                         }
                         "HOME" => defaults.home_prefix = val.to_string(),
                         "INACTIVE" => defaults.inactive = val.parse().ok(),
-                        "EXPIRE" => defaults.expire = if val.is_empty() { None } else { Some(val.to_string()) },
+                        "EXPIRE" => {
+                            defaults.expire = if val.is_empty() {
+                                None
+                            } else {
+                                Some(val.to_string())
+                            }
+                        }
                         "SHELL" => defaults.shell = val.to_string(),
                         "SKEL" => defaults.skel = val.to_string(),
-                        "CREATE_MAIL_SPOOL" => defaults.create_mail_spool = val.eq_ignore_ascii_case("yes"),
+                        "CREATE_MAIL_SPOOL" => {
+                            defaults.create_mail_spool = val.eq_ignore_ascii_case("yes")
+                        }
                         _ => {}
                     }
                 }

@@ -5,11 +5,11 @@ use super::cli::{ElevateRunOptions, ElevateValidateOptions};
 use super::diagnostic;
 use crate::common::resolve::{AuthUser, CurrentUser};
 use crate::common::{Context, Error};
-use crate::log::{auth_info, auth_warn};
-use crate::pam::PamContext;
 use crate::elevate::env::environment;
 use crate::elevate::pam::{InitPamArgs, attempt_authenticate, init_pam, pre_exec};
-use crate::elevators::{AuthenticatingUser, Authentication, Authorization, Judgement, Elevators};
+use crate::elevators::{AuthenticatingUser, Authentication, Authorization, Elevators, Judgement};
+use crate::log::{auth_info, auth_warn};
+use crate::pam::PamContext;
 use crate::system::term::current_tty_name;
 use crate::system::timestamp::{RecordScope, SessionRecordFile, TouchResult};
 use crate::system::{Process, escape_os_str_lossy};
@@ -113,10 +113,7 @@ pub fn run(mut cmd_opts: ElevateRunOptions) -> Result<(), Error> {
 
     // Zainium Zero-Trust Core Protector: block destructive commands
     // targeting immutable OS core layers, even for root.
-    match crate::core_protector::check_command(
-        options.command.as_os_str(),
-        options.arguments,
-    ) {
+    match crate::core_protector::check_command(options.command.as_os_str(), options.arguments) {
         crate::core_protector::CoreProtectorVerdict::Allowed => {}
         crate::core_protector::CoreProtectorVerdict::Blocked { offending_path } => {
             crate::core_protector::abort_with_violation(&offending_path);

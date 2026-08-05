@@ -1,7 +1,7 @@
 //! chgpasswd CLI implementation for ZainiumOS syshub.
 
-use elevate_umbra::*;
 use elevate_crypto::hash_password;
+use elevate_umbra::*;
 use std::io::{self, BufRead};
 
 fn main() {
@@ -17,7 +17,7 @@ fn main() {
     let mut gshadow_entries = GshadowFile::load(&gshadow_p).unwrap_or_default();
     let stdin = io::stdin();
 
-    for line in stdin.lock().lines().flatten() {
+    for line in stdin.lock().lines().map_while(Result::ok) {
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') {
             continue;

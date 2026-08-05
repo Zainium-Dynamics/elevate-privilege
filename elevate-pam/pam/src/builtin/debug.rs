@@ -13,7 +13,10 @@ fn log_debug(pamh: &mut PamHandle, _flags: i32, args: &[String]) -> PamStatus {
     let service = pamh.service();
 
     let extra = args.join(" ");
-    let msg = format!("pam_debug: service={} user={} extra=[{}]", service, user, extra);
+    let msg = format!(
+        "pam_debug: service={} user={} extra=[{}]",
+        service, user, extra
+    );
     let c_fmt = CString::new("%s").unwrap();
     let c_msg = CString::new(msg).unwrap();
 

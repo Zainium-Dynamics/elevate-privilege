@@ -9,10 +9,10 @@ pub(crate) mod common;
 pub(crate) mod core_protector;
 pub(crate) mod cutils;
 pub(crate) mod defaults;
+pub(crate) mod elevators;
 pub(crate) mod exec;
 pub(crate) mod log;
 pub(crate) mod pam;
-pub(crate) mod elevators;
 pub(crate) mod system;
 
 mod elev;

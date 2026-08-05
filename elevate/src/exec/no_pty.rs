@@ -76,10 +76,10 @@ pub(super) fn exec_no_pty(
     )?;
 
     // Restore the signal mask now that the handlers have been setup.
-    if let Some(set) = original_set {
-        if let Err(err) = set.set_mask() {
-            dev_warn!("cannot restore signal mask: {err}");
-        }
+    if let Some(set) = original_set
+        && let Err(err) = set.set_mask()
+    {
+        dev_warn!("cannot restore signal mask: {err}");
     }
 
     let command_exit_reason = match registry.event_loop(&mut closure) {
@@ -146,10 +146,10 @@ impl ExecClosure {
                 return true;
             }
 
-            if let Ok(signaler_pgrp) = getpgid(signaler_pid) {
-                if Some(signaler_pgrp) == self.command_pid || signaler_pgrp == self.elevate_pid {
-                    return true;
-                }
+            if let Ok(signaler_pgrp) = getpgid(signaler_pid)
+                && (Some(signaler_pgrp) == self.command_pid || signaler_pgrp == self.elevate_pid)
+            {
+                return true;
             }
         }
 
@@ -175,22 +175,19 @@ impl ExecClosure {
             // This means that the command was stopped trying to access the terminal. If the
             // terminal has a different foreground process group and we own the terminal, we give
             // it to the command and let it continue.
-            if let SIGTTOU | SIGTTIN = signal {
-                if saved_pgrp == self.parent_pgrp {
-                    if let Some(command_pgrp) = self.command_pid.and_then(|pid| getpgid(pid).ok()) {
-                        if command_pgrp != self.parent_pgrp
-                            && opt_tty
-                                .as_ref()
-                                .is_some_and(|tty| tty.tcsetpgrp_nobg(command_pgrp).is_ok())
-                        {
-                            if let Err(err) = killpg(command_pgrp, SIGCONT) {
-                                dev_warn!("cannot send SIGCONT to command ({command_pgrp}): {err}");
-                            }
-
-                            return;
-                        }
-                    }
+            if let SIGTTOU | SIGTTIN = signal
+                && saved_pgrp == self.parent_pgrp
+                && let Some(command_pgrp) = self.command_pid.and_then(|pid| getpgid(pid).ok())
+                && command_pgrp != self.parent_pgrp
+                && opt_tty
+                    .as_ref()
+                    .is_some_and(|tty| tty.tcsetpgrp_nobg(command_pgrp).is_ok())
+            {
+                if let Err(err) = killpg(command_pgrp, SIGCONT) {
+                    dev_warn!("cannot send SIGCONT to command ({command_pgrp}): {err}");
                 }
+
+                return;
             }
         }
 
@@ -218,10 +215,10 @@ impl ExecClosure {
 
         if let Some(saved_pgrp) = opt_pgrp {
             // Restore the foreground process group after resuming.
-            if saved_pgrp != self.parent_pgrp {
-                if let Some(tty) = opt_tty {
-                    tty.tcsetpgrp_nobg(saved_pgrp).ok();
-                }
+            if saved_pgrp != self.parent_pgrp
+                && let Some(tty) = opt_tty
+            {
+                tty.tcsetpgrp_nobg(saved_pgrp).ok();
             }
         }
     }
@@ -248,11 +245,11 @@ impl ExecClosure {
                 // FIXME: we should handle SIGWINCH here if we want to support I/O plugins that
                 // react on window change events.
 
-                if let Some(pid) = info.signaler_pid() {
-                    if self.is_self_terminating(pid) {
-                        // Skip the signal if it was sent by the user and it is self-terminating.
-                        return;
-                    }
+                if let Some(pid) = info.signaler_pid()
+                    && self.is_self_terminating(pid)
+                {
+                    // Skip the signal if it was sent by the user and it is self-terminating.
+                    return;
                 }
 
                 if signal == SIGALRM {

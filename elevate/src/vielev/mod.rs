@@ -159,8 +159,12 @@ fn run(file_arg: Option<&str>, perms: bool, owner: bool) -> io::Result<()> {
         (file, true)
     } else {
         // Create a elevators file if it doesn't exist.
-        let file = File::create(elevators_path)
-            .map_err(|err| io_msg!(err, "Failed to create elevators config file at {elevators_path:?}"))?;
+        let file = File::create(elevators_path).map_err(|err| {
+            io_msg!(
+                err,
+                "Failed to create elevators config file at {elevators_path:?}"
+            )
+        })?;
 
         // ogvisudo sets the permissions of the file so it can be read and written by the user and
         // read by the group if the `-f` argument was passed.

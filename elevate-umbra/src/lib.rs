@@ -17,8 +17,8 @@ pub mod passwd;
 pub mod ratelimit;
 pub mod shadow;
 pub mod subordinateio;
-pub mod useradd_defaults;
 pub mod user_busy;
+pub mod useradd_defaults;
 
 pub use audit::*;
 pub use chkname::*;
@@ -35,5 +35,5 @@ pub use passwd::*;
 pub use ratelimit::*;
 pub use shadow::*;
 pub use subordinateio::*;
-pub use useradd_defaults::*;
 pub use user_busy::*;
+pub use useradd_defaults::*;

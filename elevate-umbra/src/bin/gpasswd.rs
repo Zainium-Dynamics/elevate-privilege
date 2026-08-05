@@ -29,12 +29,32 @@ fn main() {
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
-            "-a" => { i += 1; if i < args.len() { add_user = Some(args[i].clone()); } }
-            "-d" => { i += 1; if i < args.len() { del_user = Some(args[i].clone()); } }
+            "-a" => {
+                i += 1;
+                if i < args.len() {
+                    add_user = Some(args[i].clone());
+                }
+            }
+            "-d" => {
+                i += 1;
+                if i < args.len() {
+                    del_user = Some(args[i].clone());
+                }
+            }
             "-r" => remove_pass = true,
             "-R" => restrict_access = true,
-            "-A" => { i += 1; if i < args.len() { set_admins = Some(args[i].clone()); } }
-            "-M" => { i += 1; if i < args.len() { set_members = Some(args[i].clone()); } }
+            "-A" => {
+                i += 1;
+                if i < args.len() {
+                    set_admins = Some(args[i].clone());
+                }
+            }
+            "-M" => {
+                i += 1;
+                if i < args.len() {
+                    set_members = Some(args[i].clone());
+                }
+            }
             arg if !arg.starts_with('-') => groupname = arg.to_string(),
             _ => {}
         }
@@ -50,8 +70,14 @@ fn main() {
 
     let group_p = group_path();
     let gshadow_p = gshadow_path();
-    let _lock_g = FileLock::acquire(&group_p).unwrap_or_else(|e| { eprintln!("gpasswd: {}", e); std::process::exit(1); });
-    let _lock_gs = FileLock::acquire(&gshadow_p).unwrap_or_else(|e| { eprintln!("gpasswd: {}", e); std::process::exit(1); });
+    let _lock_g = FileLock::acquire(&group_p).unwrap_or_else(|e| {
+        eprintln!("gpasswd: {}", e);
+        std::process::exit(1);
+    });
+    let _lock_gs = FileLock::acquire(&gshadow_p).unwrap_or_else(|e| {
+        eprintln!("gpasswd: {}", e);
+        std::process::exit(1);
+    });
 
     let mut group_entries = GroupFile::load(&group_p).unwrap_or_default();
     let mut gshadow_entries = GshadowFile::load(&gshadow_p).unwrap_or_default();
@@ -68,9 +94,14 @@ fn main() {
             grp.members.push(user.clone());
         }
         if let Some(gs) = gshadow_entries.iter_mut().find(|e| e.name == groupname) {
-            if !gs.members.contains(&user) { gs.members.push(user.clone()); }
+            if !gs.members.contains(&user) {
+                gs.members.push(user.clone());
+            }
         }
-        audit::audit_info("gpasswd", &format!("added user '{}' to group '{}'", user, groupname));
+        audit::audit_info(
+            "gpasswd",
+            &format!("added user '{}' to group '{}'", user, groupname),
+        );
     }
 
     if let Some(user) = del_user {
@@ -78,7 +109,10 @@ fn main() {
         if let Some(gs) = gshadow_entries.iter_mut().find(|e| e.name == groupname) {
             gs.members.retain(|m| m != &user);
         }
-        audit::audit_info("gpasswd", &format!("removed user '{}' from group '{}'", user, groupname));
+        audit::audit_info(
+            "gpasswd",
+            &format!("removed user '{}' from group '{}'", user, groupname),
+        );
     }
 
     if remove_pass {
@@ -86,7 +120,10 @@ fn main() {
         if let Some(gs) = gshadow_entries.iter_mut().find(|e| e.name == groupname) {
             gs.passwd = String::new();
         }
-        audit::audit_info("gpasswd", &format!("removed password for group '{}'", groupname));
+        audit::audit_info(
+            "gpasswd",
+            &format!("removed password for group '{}'", groupname),
+        );
     }
 
     if restrict_access {
@@ -109,7 +146,13 @@ fn main() {
         }
     }
 
-    GroupFile::save(&group_p, &group_entries).unwrap_or_else(|e| { eprintln!("gpasswd: {}", e); std::process::exit(1); });
-    GshadowFile::save(&gshadow_p, &gshadow_entries).unwrap_or_else(|e| { eprintln!("gpasswd: {}", e); std::process::exit(1); });
+    GroupFile::save(&group_p, &group_entries).unwrap_or_else(|e| {
+        eprintln!("gpasswd: {}", e);
+        std::process::exit(1);
+    });
+    GshadowFile::save(&gshadow_p, &gshadow_entries).unwrap_or_else(|e| {
+        eprintln!("gpasswd: {}", e);
+        std::process::exit(1);
+    });
     audit::closelog();
 }

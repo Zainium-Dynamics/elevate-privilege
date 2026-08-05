@@ -141,8 +141,7 @@ pub mod global {
     use once_cell::sync::Lazy;
     use std::sync::Mutex;
 
-    static REGISTRY: Lazy<Mutex<ModuleRegistry>> =
-        Lazy::new(|| Mutex::new(ModuleRegistry::new()));
+    static REGISTRY: Lazy<Mutex<ModuleRegistry>> = Lazy::new(|| Mutex::new(ModuleRegistry::new()));
 
     /// Register into the process-global registry.
     pub fn register(hooks: ModuleHooks) {
@@ -212,6 +211,5 @@ pub fn arg_has(args: &[String], flag: &str) -> bool {
 /// Helper: get key=value from args.
 pub fn arg_value<'a>(args: &'a [String], key: &str) -> Option<&'a str> {
     let prefix = alloc::format!("{key}=");
-    args.iter()
-        .find_map(|a| a.strip_prefix(&prefix))
+    args.iter().find_map(|a| a.strip_prefix(&prefix))
 }

@@ -3,8 +3,8 @@
 //!
 //! Input format (one per line): username:password:uid:gid:gecos:home:shell
 
-use elevate_umbra::*;
 use elevate_crypto::hash_password;
+use elevate_umbra::*;
 use std::io::{self, BufRead};
 
 fn main() {
@@ -14,8 +14,14 @@ fn main() {
     let shadow_p = shadow_path();
     let group_p = group_path();
 
-    let _lock_p = FileLock::acquire(&passwd_p).unwrap_or_else(|e| { eprintln!("newusers: {}", e); std::process::exit(1); });
-    let _lock_s = FileLock::acquire(&shadow_p).unwrap_or_else(|e| { eprintln!("newusers: {}", e); std::process::exit(1); });
+    let _lock_p = FileLock::acquire(&passwd_p).unwrap_or_else(|e| {
+        eprintln!("newusers: {}", e);
+        std::process::exit(1);
+    });
+    let _lock_s = FileLock::acquire(&shadow_p).unwrap_or_else(|e| {
+        eprintln!("newusers: {}", e);
+        std::process::exit(1);
+    });
 
     let mut passwd_entries = PasswdFile::load(&passwd_p).unwrap_or_default();
     let mut shadow_entries = ShadowFile::load(&shadow_p).unwrap_or_default();
@@ -25,7 +31,7 @@ fn main() {
     let stdin = io::stdin();
     let mut count = 0;
 
-    for line in stdin.lock().lines().flatten() {
+    for line in stdin.lock().lines().map_while(Result::ok) {
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') {
             continue;
@@ -33,7 +39,10 @@ fn main() {
 
         let parts: Vec<&str> = line.split(':').collect();
         if parts.len() < 7 {
-            eprintln!("newusers: invalid line (need 7 colon-separated fields): {}", line);
+            eprintln!(
+                "newusers: invalid line (need 7 colon-separated fields): {}",
+                line
+            );
             continue;
         }
 
@@ -54,11 +63,18 @@ fn main() {
         // Determine UID
         let uid: u32 = if uid_str.is_empty() {
             // Auto-assign
-            let max_uid = passwd_entries.iter().map(|e| e.uid).max().unwrap_or(login_defs.uid_min() - 1);
+            let max_uid = passwd_entries
+                .iter()
+                .map(|e| e.uid)
+                .max()
+                .unwrap_or(login_defs.uid_min() - 1);
             max_uid + 1
         } else {
             uid_str.parse().unwrap_or_else(|_| {
-                eprintln!("newusers: invalid UID '{}' for user '{}'", uid_str, username);
+                eprintln!(
+                    "newusers: invalid UID '{}' for user '{}'",
+                    uid_str, username
+                );
                 std::process::exit(1);
             })
         };
@@ -70,18 +86,33 @@ fn main() {
             g
         } else {
             // Try looking up group by name
-            group_entries.iter().find(|g| g.name == gid_str).map(|g| g.gid).unwrap_or(uid)
+            group_entries
+                .iter()
+                .find(|g| g.name == gid_str)
+                .map(|g| g.gid)
+                .unwrap_or(uid)
         };
 
-        let home_dir = if home.is_empty() { format!("/home/{}", username) } else { home.to_string() };
-        let user_shell = if shell.is_empty() { "/bin/sh".to_string() } else { shell.to_string() };
+        let home_dir = if home.is_empty() {
+            format!("/home/{}", username)
+        } else {
+            home.to_string()
+        };
+        let user_shell = if shell.is_empty() {
+            "/bin/sh".to_string()
+        } else {
+            shell.to_string()
+        };
 
         // Hash password
         let hashed = if password.is_empty() {
             "!".to_string()
         } else {
             hash_password(password).unwrap_or_else(|e| {
-                eprintln!("newusers: failed to hash password for '{}': {}", username, e);
+                eprintln!(
+                    "newusers: failed to hash password for '{}': {}",
+                    username, e
+                );
                 "!".to_string()
             })
         };
@@ -124,8 +155,14 @@ fn main() {
         count += 1;
     }
 
-    PasswdFile::save(&passwd_p, &passwd_entries).unwrap_or_else(|e| { eprintln!("newusers: {}", e); std::process::exit(1); });
-    ShadowFile::save(&shadow_p, &shadow_entries).unwrap_or_else(|e| { eprintln!("newusers: {}", e); std::process::exit(1); });
+    PasswdFile::save(&passwd_p, &passwd_entries).unwrap_or_else(|e| {
+        eprintln!("newusers: {}", e);
+        std::process::exit(1);
+    });
+    ShadowFile::save(&shadow_p, &shadow_entries).unwrap_or_else(|e| {
+        eprintln!("newusers: {}", e);
+        std::process::exit(1);
+    });
 
     println!("newusers: processed {} user(s)", count);
     audit::closelog();

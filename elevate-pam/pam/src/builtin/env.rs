@@ -56,7 +56,7 @@ fn set_env(pamh: &mut PamHandle, _flags: i32, args: &[String]) -> PamStatus {
 
 fn load_env_file(pamh: &mut PamHandle, path: &str) -> Result<(), ()> {
     let f = fs::File::open(path).map_err(|_| ())?;
-    for line in BufReader::new(f).lines().flatten() {
+    for line in BufReader::new(f).lines().map_while(Result::ok) {
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') {
             continue;
@@ -76,7 +76,7 @@ fn load_pam_env_conf(pamh: &mut PamHandle, path: &str) -> Result<(), ()> {
         return Ok(());
     }
     let f = fs::File::open(path).map_err(|_| ())?;
-    for line in BufReader::new(f).lines().flatten() {
+    for line in BufReader::new(f).lines().map_while(Result::ok) {
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') {
             continue;

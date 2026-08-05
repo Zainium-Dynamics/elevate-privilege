@@ -185,11 +185,17 @@ fn main() {
 
         if skel_path.is_dir() {
             if let Err(e) = copydir::copy_tree(skel_path, home_path, next_uid, gid) {
-                eprintln!("useradd: warning: failed to copy skel from {}: {}", skel_dir, e);
+                eprintln!(
+                    "useradd: warning: failed to copy skel from {}: {}",
+                    skel_dir, e
+                );
             }
         } else {
             if let Err(e) = std::fs::create_dir_all(home_path) {
-                eprintln!("useradd: warning: cannot create home directory {}: {}", home, e);
+                eprintln!(
+                    "useradd: warning: cannot create home directory {}: {}",
+                    home, e
+                );
             }
         }
     }

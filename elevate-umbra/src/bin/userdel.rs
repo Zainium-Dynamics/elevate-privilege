@@ -69,7 +69,10 @@ fn main() {
 
     // Check user_busy unless --force
     if !force && user_busy::user_busy(&username, uid) {
-        eprintln!("userdel: user '{}' is currently logged in or running processes", username);
+        eprintln!(
+            "userdel: user '{}' is currently logged in or running processes",
+            username
+        );
         audit::audit_user_op("userdel", "del", &username, Some(uid), false);
         std::process::exit(E_BAD_ARG);
     }
@@ -90,7 +93,10 @@ fn main() {
         let home_path = Path::new(&target_home);
         if home_path.is_dir() {
             if let Err(e) = copydir::remove_tree(home_path, true) {
-                eprintln!("userdel: warning: cannot remove home directory {}: {}", target_home, e);
+                eprintln!(
+                    "userdel: warning: cannot remove home directory {}: {}",
+                    target_home, e
+                );
             }
         }
     }

@@ -32,13 +32,13 @@ impl LoginDefs {
     pub fn load(path: &Path) -> Self {
         let mut defs = HashMap::new();
         if let Ok(file) = File::open(path) {
-            for line in BufReader::new(file).lines().flatten() {
+            for line in BufReader::new(file).lines().map_while(Result::ok) {
                 let line = line.trim().to_string();
                 if line.is_empty() || line.starts_with('#') {
                     continue;
                 }
                 // Format: KEY VALUE  or  KEY\tVALUE
-                let mut parts = line.splitn(2, |c: char| c == ' ' || c == '\t');
+                let mut parts = line.splitn(2, [' ', '\t']);
                 if let (Some(key), Some(val)) = (parts.next(), parts.next()) {
                     defs.insert(key.trim().to_uppercase(), val.trim().to_string());
                 }

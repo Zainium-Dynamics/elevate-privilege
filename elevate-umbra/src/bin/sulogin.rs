@@ -1,8 +1,8 @@
 //! sulogin CLI — Emergency root login shell for system maintenance.
 //! Port of shadow-4.17.2 `src/sulogin.c`.
 
-use elevate_umbra::*;
 use elevate_crypto::verify_password;
+use elevate_umbra::*;
 use std::ffi::CString;
 use std::io::{self, Write};
 
@@ -52,7 +52,11 @@ fn main() {
                 libc::execv(c_shell.as_ptr(), args.as_ptr());
             }
 
-            eprintln!("sulogin: failed to execute {}: {}", shell, io::Error::last_os_error());
+            eprintln!(
+                "sulogin: failed to execute {}: {}",
+                shell,
+                io::Error::last_os_error()
+            );
             std::process::exit(E_CMD_NOEXEC);
         } else {
             eprintln!("Login incorrect.");

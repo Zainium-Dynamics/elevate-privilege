@@ -8,7 +8,7 @@
 //! Classic `libpam.so*` is only a last-resort fallback when
 //! `ELEVATE_ALLOW_LIBPAM=1` is set (migration / foreign hosts).
 
-use std::ffi::{c_char, c_int, c_void, CString};
+use std::ffi::{CString, c_char, c_int, c_void};
 use std::sync::OnceLock;
 
 use super::sys::{pam_conv, pam_handle_t};
@@ -42,12 +42,9 @@ fn legacy_libpam_sonames() -> Vec<String> {
     ]
 }
 
-type PamSetItemFn =
-    unsafe extern "C" fn(*mut pam_handle_t, c_int, *const c_void) -> c_int;
-type PamGetItemFn =
-    unsafe extern "C" fn(*const pam_handle_t, c_int, *mut *const c_void) -> c_int;
-type PamStrerrorFn =
-    unsafe extern "C" fn(*mut pam_handle_t, c_int) -> *const c_char;
+type PamSetItemFn = unsafe extern "C" fn(*mut pam_handle_t, c_int, *const c_void) -> c_int;
+type PamGetItemFn = unsafe extern "C" fn(*const pam_handle_t, c_int, *mut *const c_void) -> c_int;
+type PamStrerrorFn = unsafe extern "C" fn(*mut pam_handle_t, c_int) -> *const c_char;
 type PamGetenvlistFn = unsafe extern "C" fn(*mut pam_handle_t) -> *mut *mut c_char;
 type PamStartFn = unsafe extern "C" fn(
     *const c_char,
@@ -107,8 +104,13 @@ fn dlopen_elevate_pam() -> *mut c_void {
     std::ptr::null_mut()
 }
 
+/// # Safety
+/// `handle` must be a valid handle returned by a live `dlopen` call (not
+/// yet `dlclose`d).
 unsafe fn must_dlsym(handle: *mut c_void, name: &str) -> *mut c_void {
     let cname = CString::new(name).expect("symbol name has no NUL bytes");
+    // SAFETY: handle is valid per this function's own safety contract;
+    // cname is a NUL-terminated CString kept alive for this call.
     let sym = unsafe { libc::dlsym(handle, cname.as_ptr()) };
     if sym.is_null() {
         use std::io::Write;
@@ -142,44 +144,52 @@ pub fn pam_lib() -> &'static PamLib {
         // SAFETY: symbols match elevate-pam / pam_appl C ABI.
         unsafe {
             PamLib {
-                pam_set_item: std::mem::transmute::<*mut c_void, PamSetItemFn>(
-                    must_dlsym(handle, "pam_set_item"),
-                ),
-                pam_get_item: std::mem::transmute::<*mut c_void, PamGetItemFn>(
-                    must_dlsym(handle, "pam_get_item"),
-                ),
-                pam_strerror: std::mem::transmute::<*mut c_void, PamStrerrorFn>(
-                    must_dlsym(handle, "pam_strerror"),
-                ),
-                pam_getenvlist: std::mem::transmute::<*mut c_void, PamGetenvlistFn>(
-                    must_dlsym(handle, "pam_getenvlist"),
-                ),
+                pam_set_item: std::mem::transmute::<*mut c_void, PamSetItemFn>(must_dlsym(
+                    handle,
+                    "pam_set_item",
+                )),
+                pam_get_item: std::mem::transmute::<*mut c_void, PamGetItemFn>(must_dlsym(
+                    handle,
+                    "pam_get_item",
+                )),
+                pam_strerror: std::mem::transmute::<*mut c_void, PamStrerrorFn>(must_dlsym(
+                    handle,
+                    "pam_strerror",
+                )),
+                pam_getenvlist: std::mem::transmute::<*mut c_void, PamGetenvlistFn>(must_dlsym(
+                    handle,
+                    "pam_getenvlist",
+                )),
                 pam_start: std::mem::transmute::<*mut c_void, PamStartFn>(must_dlsym(
                     handle,
                     "pam_start",
                 )),
                 pam_end: std::mem::transmute::<*mut c_void, PamEndFn>(must_dlsym(
-                    handle,
-                    "pam_end",
+                    handle, "pam_end",
                 )),
-                pam_authenticate: std::mem::transmute::<*mut c_void, PamSimpleFlagsFn>(
-                    must_dlsym(handle, "pam_authenticate"),
-                ),
-                pam_setcred: std::mem::transmute::<*mut c_void, PamSimpleFlagsFn>(
-                    must_dlsym(handle, "pam_setcred"),
-                ),
-                pam_acct_mgmt: std::mem::transmute::<*mut c_void, PamSimpleFlagsFn>(
-                    must_dlsym(handle, "pam_acct_mgmt"),
-                ),
-                pam_open_session: std::mem::transmute::<*mut c_void, PamSimpleFlagsFn>(
-                    must_dlsym(handle, "pam_open_session"),
-                ),
+                pam_authenticate: std::mem::transmute::<*mut c_void, PamSimpleFlagsFn>(must_dlsym(
+                    handle,
+                    "pam_authenticate",
+                )),
+                pam_setcred: std::mem::transmute::<*mut c_void, PamSimpleFlagsFn>(must_dlsym(
+                    handle,
+                    "pam_setcred",
+                )),
+                pam_acct_mgmt: std::mem::transmute::<*mut c_void, PamSimpleFlagsFn>(must_dlsym(
+                    handle,
+                    "pam_acct_mgmt",
+                )),
+                pam_open_session: std::mem::transmute::<*mut c_void, PamSimpleFlagsFn>(must_dlsym(
+                    handle,
+                    "pam_open_session",
+                )),
                 pam_close_session: std::mem::transmute::<*mut c_void, PamSimpleFlagsFn>(
                     must_dlsym(handle, "pam_close_session"),
                 ),
-                pam_chauthtok: std::mem::transmute::<*mut c_void, PamSimpleFlagsFn>(
-                    must_dlsym(handle, "pam_chauthtok"),
-                ),
+                pam_chauthtok: std::mem::transmute::<*mut c_void, PamSimpleFlagsFn>(must_dlsym(
+                    handle,
+                    "pam_chauthtok",
+                )),
             }
         }
     })

@@ -283,10 +283,10 @@ pub(in crate::exec) fn exec_pty(
     )?;
 
     // Restore the signal mask now that the handlers have been setup.
-    if let Some(set) = original_set {
-        if let Err(err) = set.set_mask() {
-            dev_warn!("cannot restore signal mask: {err}");
-        }
+    if let Some(set) = original_set
+        && let Err(err) = set.set_mask()
+    {
+        dev_warn!("cannot restore signal mask: {err}");
     }
 
     let exit_reason = closure.run(registry);
@@ -299,12 +299,12 @@ pub(in crate::exec) fn exec_pty(
     // Restore the terminal settings
     if closure.term_raw {
         // Only restore the terminal if elevate is the foreground process.
-        if let Ok(pgrp) = closure.tty_pipe.left().tcgetpgrp() {
-            if pgrp == closure.parent_pgrp {
-                match closure.tty_pipe.left_mut().restore(false) {
-                    Ok(()) => closure.term_raw = false,
-                    Err(err) => dev_warn!("cannot restore terminal settings: {err}"),
-                }
+        if let Ok(pgrp) = closure.tty_pipe.left().tcgetpgrp()
+            && pgrp == closure.parent_pgrp
+        {
+            match closure.tty_pipe.left_mut().restore(false) {
+                Ok(()) => closure.term_raw = false,
+                Err(err) => dev_warn!("cannot restore terminal settings: {err}"),
             }
         }
     }
@@ -507,10 +507,10 @@ impl ParentClosure {
                 return true;
             }
 
-            if let Ok(signaler_pgrp) = getpgid(signaler_pid) {
-                if Some(signaler_pgrp) == self.command_pid || signaler_pgrp == self.elevate_pid {
-                    return true;
-                }
+            if let Ok(signaler_pgrp) = getpgid(signaler_pid)
+                && (Some(signaler_pgrp) == self.command_pid || signaler_pgrp == self.elevate_pid)
+            {
+                return true;
             }
         }
 
@@ -725,11 +725,11 @@ impl ParentClosure {
                 }
             }
             signal => {
-                if let Some(pid) = info.signaler_pid() {
-                    if self.is_self_terminating(pid) {
-                        // Skip the signal if it was sent by the user and it is self-terminating.
-                        return;
-                    }
+                if let Some(pid) = info.signaler_pid()
+                    && self.is_self_terminating(pid)
+                {
+                    // Skip the signal if it was sent by the user and it is self-terminating.
+                    return;
                 }
 
                 // FIXME: check `send_command_status`

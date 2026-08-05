@@ -14,7 +14,10 @@ impl FileLock {
     pub fn acquire(target_path: &Path) -> Result<Self, String> {
         let lock_path = target_path.with_extension(format!(
             "{}.lock",
-            target_path.extension().and_then(|e| e.to_str()).unwrap_or("")
+            target_path
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("")
         ));
 
         let file = OpenOptions::new()

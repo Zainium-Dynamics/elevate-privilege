@@ -1,8 +1,8 @@
 //! Module-private data store (`pam_set_data` / `pam_get_data`).
 
+use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
-use alloc::boxed::Box;
 
 /// Cleanup callback signature (mirrors Linux-PAM).
 pub type DataCleanup = Option<fn(*mut core::ffi::c_void, i32)>;
@@ -44,13 +44,8 @@ impl DataTable {
                 cb(old.ptr, replace_status);
             }
         }
-        self.map.insert(
-            String::from(name),
-            DataEntry {
-                ptr: data,
-                cleanup,
-            },
-        );
+        self.map
+            .insert(String::from(name), DataEntry { ptr: data, cleanup });
     }
 
     /// Get data pointer by name.
@@ -74,8 +69,6 @@ impl Drop for DataTable {
         self.clear_with_status(crate::constants::PAM_SUCCESS);
     }
 }
-
-
 
 /// Box a Rust value into a raw pointer for pam_set_data.
 pub fn box_data<T>(value: T) -> *mut core::ffi::c_void {

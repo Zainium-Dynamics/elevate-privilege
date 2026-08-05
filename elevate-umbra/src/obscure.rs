@@ -4,20 +4,30 @@
 use crate::login_defs::LoginDefs;
 
 /// Check password strength and return an error message if it fails quality checks.
-pub fn check_password_quality(new_pass: &str, old_pass: Option<&str>, username: &str) -> Result<(), String> {
+pub fn check_password_quality(
+    new_pass: &str,
+    old_pass: Option<&str>,
+    username: &str,
+) -> Result<(), String> {
     let login_defs = LoginDefs::load_default();
     let min_len = login_defs.pass_min_len().max(6); // Enforce absolute minimum 6 characters
 
     // 1. Length Check (minimum 6 characters)
     if new_pass.len() < min_len {
-        return Err(format!("password length must be at least {} characters", min_len));
+        return Err(format!(
+            "password length must be at least {} characters",
+            min_len
+        ));
     }
 
     // 2. Username vs Password Equality Check
     let lower_pass = new_pass.to_lowercase();
     let lower_user = username.to_lowercase();
     if lower_pass == lower_user || lower_pass.contains(&lower_user) {
-        return Err("username and password must be different (password cannot contain username)".to_string());
+        return Err(
+            "username and password must be different (password cannot contain username)"
+                .to_string(),
+        );
     }
     let rev_user: String = lower_user.chars().rev().collect();
     if lower_pass == rev_user {
@@ -33,13 +43,19 @@ pub fn check_password_quality(new_pass: &str, old_pass: Option<&str>, username: 
     // 4. Require Capital Letter
     let has_uppercase = new_pass.chars().any(|c| c.is_uppercase());
     if !has_uppercase {
-        return Err("password must contain at least one uppercase capital letter (A-Z)".to_string());
+        return Err(
+            "password must contain at least one uppercase capital letter (A-Z)".to_string(),
+        );
     }
 
     // 5. Require Special Character
-    let has_special = new_pass.chars().any(|c| c.is_ascii_punctuation() || !c.is_alphanumeric());
+    let has_special = new_pass
+        .chars()
+        .any(|c| c.is_ascii_punctuation() || !c.is_alphanumeric());
     if !has_special {
-        return Err("password must contain at least one special character (!@#$%^&*...)".to_string());
+        return Err(
+            "password must contain at least one special character (!@#$%^&*...)".to_string(),
+        );
     }
 
     // 6. Require Number

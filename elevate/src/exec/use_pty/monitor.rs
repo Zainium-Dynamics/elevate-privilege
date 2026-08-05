@@ -132,20 +132,18 @@ pub(super) fn exec_monitor(
     )?;
 
     // Restore the signal mask now that the handlers have been setup.
-    if let Some(set) = original_set {
-        if let Err(err) = set.set_mask() {
-            dev_warn!("cannot restore signal mask: {err}");
-        }
+    if let Some(set) = original_set
+        && let Err(err) = set.set_mask()
+    {
+        dev_warn!("cannot restore signal mask: {err}");
     }
 
     // Set the foreground group for the pty follower.
-    if foreground {
-        if let Err(err) = closure.pty_follower.tcsetpgrp(closure.command_pgrp) {
-            dev_error!(
-                "cannot set foreground process group to {} (command): {err}",
-                closure.command_pgrp
-            );
-        }
+    if foreground && let Err(err) = closure.pty_follower.tcsetpgrp(closure.command_pgrp) {
+        dev_error!(
+            "cannot set foreground process group to {} (command): {err}",
+            closure.command_pgrp
+        );
     }
 
     // FIXME (ogsudo): Here's where the signal mask is removed because the handlers for the signals
@@ -371,11 +369,11 @@ impl<'a> MonitorClosure<'a> {
         match info.signal() {
             SIGCHLD => handle_sigchld(self, registry, "command", command_pid),
             signal => {
-                if let Some(pid) = info.signaler_pid() {
-                    if is_self_terminating(pid, command_pid, self.command_pgrp) {
-                        // Skip the signal if it was sent by the user and it is self-terminating.
-                        return;
-                    }
+                if let Some(pid) = info.signaler_pid()
+                    && is_self_terminating(pid, command_pid, self.command_pgrp)
+                {
+                    // Skip the signal if it was sent by the user and it is self-terminating.
+                    return;
                 }
 
                 self.send_signal(signal, command_pid, false)
@@ -399,10 +397,10 @@ fn is_self_terminating(
             return true;
         }
 
-        if let Ok(grp_leader) = getpgid(signaler_pid) {
-            if grp_leader == command_pgrp {
-                return true;
-            }
+        if let Ok(grp_leader) = getpgid(signaler_pid)
+            && grp_leader == command_pgrp
+        {
+            return true;
         }
     }
 
@@ -445,10 +443,10 @@ impl HandleSigchld for MonitorClosure<'_> {
 
     fn on_stop(&mut self, signal: c_int, _registry: &mut EventRegistry<Self>) {
         // Save the foreground process group ID so we can restore it later.
-        if let Ok(pgrp) = self.pty_follower.tcgetpgrp() {
-            if pgrp != self.monitor_pgrp {
-                self.command_pgrp = pgrp;
-            }
+        if let Ok(pgrp) = self.pty_follower.tcgetpgrp()
+            && pgrp != self.monitor_pgrp
+        {
+            self.command_pgrp = pgrp;
         }
         self.backchannel
             .send(&CommandStatus::Stop(signal).into())

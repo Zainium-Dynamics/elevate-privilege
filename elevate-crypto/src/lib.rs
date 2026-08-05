@@ -80,11 +80,7 @@ pub fn sign_ed25519(secret: &[u8; 32], message: &[u8]) -> CryptoResult<[u8; 64]>
 
 /// Verify Ed25519 signature.
 #[cfg(feature = "sign")]
-pub fn verify_ed25519(
-    public: &[u8; 32],
-    message: &[u8],
-    signature: &[u8; 64],
-) -> CryptoResult<()> {
+pub fn verify_ed25519(public: &[u8; 32], message: &[u8], signature: &[u8; 64]) -> CryptoResult<()> {
     rust_backend::ed25519::verify(public, message, signature)
 }
 

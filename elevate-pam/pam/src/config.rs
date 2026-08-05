@@ -8,17 +8,17 @@ use alloc::vec::Vec;
 
 use serde::{Deserialize, Serialize};
 
+use crate::constants::{
+    PAM_ABORT, PAM_ACCT_EXPIRED, PAM_AUTHINFO_UNAVAIL, PAM_AUTHTOK_DISABLE_AGING, PAM_AUTHTOK_ERR,
+    PAM_AUTHTOK_EXPIRED, PAM_AUTHTOK_LOCK_BUSY, PAM_AUTHTOK_RECOVERY_ERR, PAM_AUTH_ERR,
+    PAM_BAD_ITEM, PAM_BUF_ERR, PAM_CONV_AGAIN, PAM_CONV_ERR, PAM_CRED_ERR, PAM_CRED_EXPIRED,
+    PAM_CRED_INSUFFICIENT, PAM_CRED_UNAVAIL, PAM_IGNORE, PAM_INCOMPLETE, PAM_MAXTRIES,
+    PAM_MODULE_UNKNOWN, PAM_NEW_AUTHTOK_REQD, PAM_NO_MODULE_DATA, PAM_OPEN_ERR, PAM_PERM_DENIED,
+    PAM_RETURN_VALUES, PAM_SERVICE_ERR, PAM_SESSION_ERR, PAM_SUCCESS, PAM_SYMBOL_ERR,
+    PAM_SYSTEM_ERR, PAM_TRY_AGAIN, PAM_USER_UNKNOWN,
+};
 use crate::error::{PamError, PamResult};
 use crate::types::{Action, StackKind};
-use crate::constants::{
-    PAM_ABORT, PAM_ACCT_EXPIRED, PAM_AUTHINFO_UNAVAIL, PAM_AUTHTOK_DISABLE_AGING,
-    PAM_AUTHTOK_ERR, PAM_AUTHTOK_EXPIRED, PAM_AUTHTOK_LOCK_BUSY, PAM_AUTHTOK_RECOVERY_ERR,
-    PAM_AUTH_ERR, PAM_BAD_ITEM, PAM_BUF_ERR, PAM_CONV_AGAIN, PAM_CONV_ERR, PAM_CRED_ERR,
-    PAM_CRED_EXPIRED, PAM_CRED_INSUFFICIENT, PAM_CRED_UNAVAIL, PAM_IGNORE, PAM_INCOMPLETE,
-    PAM_MAXTRIES, PAM_MODULE_UNKNOWN, PAM_NEW_AUTHTOK_REQD, PAM_NO_MODULE_DATA, PAM_OPEN_ERR,
-    PAM_PERM_DENIED, PAM_SERVICE_ERR, PAM_SESSION_ERR, PAM_SUCCESS, PAM_SYMBOL_ERR,
-    PAM_SYSTEM_ERR, PAM_TRY_AGAIN, PAM_USER_UNKNOWN, PAM_RETURN_VALUES,
-};
 
 /// Build / linkage category for elevate-pam artifacts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -287,12 +287,12 @@ impl GlobalConfig {
     /// Parse from TOML text.
     pub fn parse(text: &str) -> PamResult<Self> {
         // Custom parse for `static` keyword in [build]
-        let value: toml::Value = toml::from_str(text).map_err(|e| {
-            PamError::Config(alloc::format!("elevate-pam.toml parse error: {e}"))
-        })?;
-        let mut cfg: GlobalConfig = value.clone().try_into().map_err(|e| {
-            PamError::Config(alloc::format!("elevate-pam.toml schema error: {e}"))
-        })?;
+        let value: toml::Value = toml::from_str(text)
+            .map_err(|e| PamError::Config(alloc::format!("elevate-pam.toml parse error: {e}")))?;
+        let mut cfg: GlobalConfig = value
+            .clone()
+            .try_into()
+            .map_err(|e| PamError::Config(alloc::format!("elevate-pam.toml schema error: {e}")))?;
         if let Some(build) = value.get("build") {
             cfg.build = BuildConfig::from_toml_value(build);
         }
@@ -552,9 +552,8 @@ pub struct ServiceMeta {
 impl ServiceConfig {
     /// Parse service TOML.
     pub fn parse(text: &str) -> PamResult<Self> {
-        toml::from_str(text).map_err(|e| {
-            PamError::Config(alloc::format!("service.toml parse error: {e}"))
-        })
+        toml::from_str(text)
+            .map_err(|e| PamError::Config(alloc::format!("service.toml parse error: {e}")))
     }
 
     /// Stack entries for a given kind.
@@ -600,9 +599,7 @@ pub fn sanitize_service_name(name: &str, reject_paths: bool) -> PamResult<String
         return Err(PamError::InvalidArgument("empty service name".into()));
     }
     if base.contains("..") || base.contains('\0') {
-        return Err(PamError::InvalidArgument(
-            "illegal service name".into(),
-        ));
+        return Err(PamError::InvalidArgument("illegal service name".into()));
     }
     Ok(base.to_ascii_lowercase())
 }
@@ -617,10 +614,7 @@ mod std_io {
         /// Load from a filesystem path.
         pub fn load_path(path: impl AsRef<Path>) -> PamResult<Self> {
             let text = fs::read_to_string(path.as_ref()).map_err(|e| {
-                PamError::Io(alloc::format!(
-                    "read {}: {e}",
-                    path.as_ref().display()
-                ))
+                PamError::Io(alloc::format!("read {}: {e}", path.as_ref().display()))
             })?;
             Self::parse(&text)
         }
@@ -652,12 +646,8 @@ mod std_io {
         pub fn load_service(global: &GlobalConfig, service: &str) -> PamResult<Self> {
             let name = sanitize_service_name(service, global.security.reject_service_paths)?;
             let mut candidates: Vec<PathBuf> = Vec::new();
-            candidates.push(
-                PathBuf::from(&global.paths.services_dir).join(format!("{name}.toml")),
-            );
-            candidates.push(
-                PathBuf::from(&global.paths.vendor_dir).join(format!("{name}.toml")),
-            );
+            candidates.push(PathBuf::from(&global.paths.services_dir).join(format!("{name}.toml")));
+            candidates.push(PathBuf::from(&global.paths.vendor_dir).join(format!("{name}.toml")));
             // also allow conf_dir/services/
             candidates.push(
                 PathBuf::from(&global.paths.conf_dir)

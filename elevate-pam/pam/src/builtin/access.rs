@@ -41,8 +41,12 @@ fn check(pamh: &mut PamHandle, _flags: i32, args: &[String]) -> PamStatus {
     let accessfile = arg_value(args, "accessfile")
         .map(String::from)
         .unwrap_or_else(|| elevate_paths::get().access_conf());
-    let origin = pamh.get_item_str(crate::types::ItemType::Tty).map(String::from);
-    let rhost = pamh.get_item_str(crate::types::ItemType::RHost).map(String::from);
+    let origin = pamh
+        .get_item_str(crate::types::ItemType::Tty)
+        .map(String::from);
+    let rhost = pamh
+        .get_item_str(crate::types::ItemType::RHost)
+        .map(String::from);
     let origin = rhost.or(origin).unwrap_or_else(|| "LOCAL".into());
 
     let text = match fs::read_to_string(&accessfile) {
@@ -56,7 +60,9 @@ fn check(pamh: &mut PamHandle, _flags: i32, args: &[String]) -> PamStatus {
             continue;
         }
         let mut fields = line.splitn(3, ':').map(str::trim);
-        let (Some(perm), Some(users), Some(origins)) = (fields.next(), fields.next(), fields.next()) else {
+        let (Some(perm), Some(users), Some(origins)) =
+            (fields.next(), fields.next(), fields.next())
+        else {
             continue;
         };
         if !user_matches(users, &user) {
@@ -69,14 +75,24 @@ fn check(pamh: &mut PamHandle, _flags: i32, args: &[String]) -> PamStatus {
         if debug {
             crate::log::debug(
                 pamh,
-                &format!("access: line {}: user='{user}' origin='{origin}' -> {}", lineno + 1, if allow { "allow" } else { "deny" }),
+                &format!(
+                    "access: line {}: user='{user}' origin='{origin}' -> {}",
+                    lineno + 1,
+                    if allow { "allow" } else { "deny" }
+                ),
             );
         }
         if allow {
             return PamStatus::new(PAM_SUCCESS);
         }
         if !arg_has(args, "noaudit") {
-            crate::log::warn(pamh, &format!("access: denied for user '{user}' from '{origin}' (access.conf:{})", lineno + 1));
+            crate::log::warn(
+                pamh,
+                &format!(
+                    "access: denied for user '{user}' from '{origin}' (access.conf:{})",
+                    lineno + 1
+                ),
+            );
         }
         return PamStatus::new(PAM_PERM_DENIED);
     }
@@ -86,7 +102,10 @@ fn check(pamh: &mut PamHandle, _flags: i32, args: &[String]) -> PamStatus {
 }
 
 fn user_matches(field: &str, user: &str) -> bool {
-    field.split(',').map(str::trim).any(|item| match_one_user(item, user))
+    field
+        .split(',')
+        .map(str::trim)
+        .any(|item| match_one_user(item, user))
 }
 
 fn match_one_user(item: &str, user: &str) -> bool {
@@ -103,7 +122,10 @@ fn match_one_user(item: &str, user: &str) -> bool {
 }
 
 fn origin_matches(field: &str, origin: &str) -> bool {
-    field.split(',').map(str::trim).any(|item| match_one_origin(item, origin))
+    field
+        .split(',')
+        .map(str::trim)
+        .any(|item| match_one_origin(item, origin))
 }
 
 fn match_one_origin(item: &str, origin: &str) -> bool {
@@ -120,7 +142,8 @@ fn match_one_origin(item: &str, origin: &str) -> bool {
 }
 
 fn is_group_member(user: &str, group: &str) -> bool {
-    let (Ok(c_user), Ok(c_group)) = (std::ffi::CString::new(user), std::ffi::CString::new(group)) else {
+    let (Ok(c_user), Ok(c_group)) = (std::ffi::CString::new(user), std::ffi::CString::new(group))
+    else {
         return false;
     };
     // SAFETY: c_user/c_group are valid NUL-terminated strings for the

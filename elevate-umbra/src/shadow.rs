@@ -29,10 +29,18 @@ impl ShadowEntry {
         }
 
         let parse_opt_i64 = |s: &str| -> Option<i64> {
-            if s.is_empty() { None } else { s.parse().ok() }
+            if s.is_empty() {
+                None
+            } else {
+                s.parse().ok()
+            }
         };
         let parse_opt_u64 = |s: &str| -> Option<u64> {
-            if s.is_empty() { None } else { s.parse().ok() }
+            if s.is_empty() {
+                None
+            } else {
+                s.parse().ok()
+            }
         };
 
         Some(Self {
@@ -83,7 +91,8 @@ impl ShadowFile {
         if !path.exists() {
             return Ok(Vec::new());
         }
-        let file = File::open(path).map_err(|e| format!("failed to open {}: {}", path.display(), e))?;
+        let file =
+            File::open(path).map_err(|e| format!("failed to open {}: {}", path.display(), e))?;
         let reader = BufReader::new(file);
         let mut entries = Vec::new();
 
@@ -96,7 +105,11 @@ impl ShadowFile {
             if let Some(entry) = ShadowEntry::parse_line(trimmed) {
                 entries.push(entry);
             } else {
-                eprintln!("warning: invalid shadow line {} in {}", line_no + 1, path.display());
+                eprintln!(
+                    "warning: invalid shadow line {} in {}",
+                    line_no + 1,
+                    path.display()
+                );
             }
         }
         Ok(entries)

@@ -9,7 +9,6 @@ use elevate_pam::constants::*;
 use elevate_pam::conv::{CPamMessage, CPamResponse, PamConv};
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_int, c_void};
-use std::ptr;
 
 extern "C" fn fixed_conv(
     num_msg: c_int,

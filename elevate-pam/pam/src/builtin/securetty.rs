@@ -61,7 +61,7 @@ fn tty_is_secure(tty: &str, file: &str) -> bool {
         // missing securetty — Linux-PAM historically allows
         return true;
     };
-    for line in BufReader::new(f).lines().flatten() {
+    for line in BufReader::new(f).lines().map_while(Result::ok) {
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') {
             continue;

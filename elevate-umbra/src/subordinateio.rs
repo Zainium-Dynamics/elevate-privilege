@@ -43,9 +43,10 @@ impl SubIdFile {
         if !path.exists() {
             return Ok(Vec::new());
         }
-        let file = File::open(path).map_err(|e| format!("failed to open {}: {}", path.display(), e))?;
+        let file =
+            File::open(path).map_err(|e| format!("failed to open {}: {}", path.display(), e))?;
         let mut entries = Vec::new();
-        for line in BufReader::new(file).lines().flatten() {
+        for line in BufReader::new(file).lines().map_while(Result::ok) {
             let line = line.trim();
             if line.is_empty() || line.starts_with('#') {
                 continue;
@@ -58,7 +59,8 @@ impl SubIdFile {
     }
 
     pub fn save(path: &Path, entries: &[SubIdEntry]) -> Result<(), String> {
-        let mut file = File::create(path).map_err(|e| format!("failed to create {}: {}", path.display(), e))?;
+        let mut file = File::create(path)
+            .map_err(|e| format!("failed to create {}: {}", path.display(), e))?;
         for entry in entries {
             writeln!(file, "{}", entry.to_line())
                 .map_err(|e| format!("write error {}: {}", path.display(), e))?;
@@ -67,7 +69,13 @@ impl SubIdFile {
     }
 
     /// Assign sub-IDs for a new user if not already present.
-    pub fn add_user_range(path: &Path, owner: &str, min_id: u32, max_id: u32, range_count: u32) -> Result<SubIdEntry, String> {
+    pub fn add_user_range(
+        path: &Path,
+        owner: &str,
+        min_id: u32,
+        max_id: u32,
+        range_count: u32,
+    ) -> Result<SubIdEntry, String> {
         let mut entries = Self::load(path)?;
         if let Some(existing) = entries.iter().find(|e| e.owner == owner) {
             return Ok(existing.clone());

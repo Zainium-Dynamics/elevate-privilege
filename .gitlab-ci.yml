@@ -81,26 +81,16 @@ check:standalone-elevate-pam:
     - cargo build --manifest-path elevate-pam/pam/Cargo.toml --release
     - cargo build --manifest-path elevate-pam/pam-unix/Cargo.toml --release
 
-# Large pre-existing codebase, not yet clippy-clean everywhere (~59 existing
-# lint errors across elevate/elevate-pam/elevate-umbra as of 2026-08-05 --
-# mostly missing `# Safety` docs on unsafe fns and collapsible-if, none from
-# this session's changes) -- non-blocking until that backlog is cleared.
-# The clippy fixes made *in this session* (elevate-crypto's result_unit_err
-# and needless_return) are real, not suppressed.
 clippy:
   extends: .cargo_job
   stage: check
-  allow_failure: true
   script:
     - rustup component add clippy
     - cargo clippy --workspace --all-targets -- -D warnings
 
-# Large pre-existing codebase, not yet fmt-clean everywhere -- non-blocking
-# until it is.
 fmt:
   extends: .cargo_job
   stage: check
-  allow_failure: true
   script:
     - rustup component add rustfmt
     - cargo fmt --all -- --check

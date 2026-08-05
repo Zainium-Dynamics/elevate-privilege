@@ -1,7 +1,7 @@
 //! passwd CLI implementation for ZainiumOS syshub using elevate-crypto.
 
-use elevate_umbra::*;
 use elevate_crypto::hash_password;
+use elevate_umbra::*;
 use std::env;
 
 fn main() {
@@ -48,7 +48,10 @@ fn main() {
     let pass2 = pass2.trim_end_matches(['\r', '\n']);
 
     if pass1.len() > PASS_MAX {
-        eprintln!("passwd: password exceeds maximum length of {} bytes", PASS_MAX);
+        eprintln!(
+            "passwd: password exceeds maximum length of {} bytes",
+            PASS_MAX
+        );
         audit::audit_user_op("passwd", "chpasswd", &target_user, None, false);
         std::process::exit(E_BAD_ARG);
     }

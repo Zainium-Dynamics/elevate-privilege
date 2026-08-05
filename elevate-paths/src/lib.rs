@@ -175,6 +175,10 @@ impl PathsConfig {
     pub fn shells_file(&self) -> String {
         format!("{}/shells", self.etc_dir())
     }
+    /// `pam_unix`'s `remember=` password-history file (`opasswd(5)`).
+    pub fn opasswd_file(&self) -> String {
+        format!("{}/security/opasswd", self.etc_dir())
+    }
     pub fn login_defs_file(&self) -> String {
         format!("{}/login.defs", self.etc_dir())
     }
@@ -210,11 +214,15 @@ impl PathsConfig {
     pub fn environment_file(&self) -> String {
         format!("{}/environment", self.etc_dir())
     }
-    /// Zoneinfo search directories, in priority order.
-    pub fn zoneinfo_dirs(&self) -> [String; 2] {
+    /// Zoneinfo search directories, in priority order. Zainium's own
+    /// layout first, then standard FHS `/usr/share/zoneinfo` as a
+    /// portability fallback for any other distro (or a dev/CI host) that
+    /// doesn't have a `/overlayer/syshub` tree at all.
+    pub fn zoneinfo_dirs(&self) -> [String; 3] {
         [
             format!("{}/zoneinfo", self.etc_dir()),
             format!("{}/lib/zoneinfo", self.prefix),
+            String::from("/usr/share/zoneinfo"),
         ]
     }
     /// Grace-period auth timestamp cache directory (`pam-timestamp`).

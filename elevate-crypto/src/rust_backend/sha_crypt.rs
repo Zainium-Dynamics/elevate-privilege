@@ -34,12 +34,15 @@ fn verify_sha512(password: &str, hash: &str) -> CryptoResult<bool> {
     let out = sha512_crypt_b64(password.as_bytes(), salt.as_bytes(), &params)
         .map_err(|_| CryptoError::Internal("sha512_crypt failed"))?;
     // sha_crypt returns b64 checksum only in some versions; compare full rebuild
-    let rebuilt = format!("$6${}${out}", if rounds != 5000 {
-        // sha-crypt crate API varies — compare checksum field
-        format!("rounds={rounds}${salt}")
-    } else {
-        salt.clone()
-    });
+    let rebuilt = format!(
+        "$6${}${out}",
+        if rounds != 5000 {
+            // sha-crypt crate API varies — compare checksum field
+            format!("rounds={rounds}${salt}")
+        } else {
+            salt.clone()
+        }
+    );
     // Prefer comparing the computed modular crypt against stored
     let _ = rebuilt;
     Ok(ct_eq(out.as_bytes(), checksum.as_bytes())

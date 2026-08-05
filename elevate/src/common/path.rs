@@ -6,7 +6,7 @@ use std::{
     str,
 };
 
-use super::{Error, ElevateString};
+use super::{ElevateString, Error};
 
 /// A `PathBuf` guaranteed to not contain null bytes and be UTF-8 encoded
 #[derive(Clone, Debug, PartialEq)]
@@ -39,7 +39,10 @@ impl ElevatePath {
     }
 
     /// Resolve the use of a '~' that occurs in this `ElevatePathBuf`; based on the elevators context
-    pub fn expand_tilde_in_path(&self, default_username: &ElevateString) -> Result<ElevatePath, Error> {
+    pub fn expand_tilde_in_path(
+        &self,
+        default_username: &ElevateString,
+    ) -> Result<ElevatePath, Error> {
         if let Some(prefix) = self.inner.strip_prefix('~') {
             let (username, relpath) = prefix.split_once('/').unwrap_or((prefix, ""));
 

@@ -35,13 +35,19 @@ pub fn enforce_failed_attempt_delay(target_name: &str) -> u32 {
 
     if db_path.exists() {
         if let Ok(file) = File::open(&db_path) {
-            for line in BufReader::new(file).lines().flatten() {
+            for line in BufReader::new(file).lines().map_while(Result::ok) {
                 let parts: Vec<&str> = line.trim().split(':').collect();
                 if parts.len() >= 3 {
                     let user = parts[0].to_string();
                     let count: u32 = parts[1].parse().unwrap_or(0);
                     let last: u64 = parts[2].parse().unwrap_or(0);
-                    records.insert(user, FailRecord { count, last_attempt: last });
+                    records.insert(
+                        user,
+                        FailRecord {
+                            count,
+                            last_attempt: last,
+                        },
+                    );
                 }
             }
         }
@@ -63,7 +69,12 @@ pub fn enforce_failed_attempt_delay(target_name: &str) -> u32 {
     records.insert(target_name.to_string(), record.clone());
 
     // Save back to db file safely
-    if let Ok(mut file) = OpenOptions::new().write(true).create(true).truncate(true).open(&db_path) {
+    if let Ok(mut file) = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&db_path)
+    {
         for (u, r) in &records {
             let _ = writeln!(file, "{}:{}:{}", u, r.count, r.last_attempt);
         }
@@ -102,19 +113,30 @@ pub fn clear_failed_attempts(target_name: &str) {
     }
     let mut records: HashMap<String, FailRecord> = HashMap::new();
     if let Ok(file) = File::open(&db_path) {
-        for line in BufReader::new(file).lines().flatten() {
+        for line in BufReader::new(file).lines().map_while(Result::ok) {
             let parts: Vec<&str> = line.trim().split(':').collect();
             if parts.len() >= 3 {
                 let user = parts[0].to_string();
                 let count: u32 = parts[1].parse().unwrap_or(0);
                 let last: u64 = parts[2].parse().unwrap_or(0);
                 if user != target_name {
-                    records.insert(user, FailRecord { count, last_attempt: last });
+                    records.insert(
+                        user,
+                        FailRecord {
+                            count,
+                            last_attempt: last,
+                        },
+                    );
                 }
             }
         }
     }
-    if let Ok(mut file) = OpenOptions::new().write(true).create(true).truncate(true).open(&db_path) {
+    if let Ok(mut file) = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&db_path)
+    {
         for (u, r) in &records {
             let _ = writeln!(file, "{}:{}:{}", u, r.count, r.last_attempt);
         }

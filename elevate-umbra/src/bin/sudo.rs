@@ -19,7 +19,10 @@ fn main() {
 
     audit::audit_crit(
         "sudo_blocker",
-        &format!("BLOCKED legacy sudo attempt by user '{}' with args: '{}'", user, cmd_line),
+        &format!(
+            "BLOCKED legacy sudo attempt by user '{}' with args: '{}'",
+            user, cmd_line
+        ),
     );
 
     audit::closelog();

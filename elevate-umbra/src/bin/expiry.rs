@@ -29,7 +29,9 @@ fn main() {
 
     if check_only {
         match status {
-            ExpiryStatus::AccountExpired | ExpiryStatus::AccountInactive | ExpiryStatus::PasswordExpired => {
+            ExpiryStatus::AccountExpired
+            | ExpiryStatus::AccountInactive
+            | ExpiryStatus::PasswordExpired => {
                 std::process::exit(1);
             }
             _ => std::process::exit(E_SUCCESS),
@@ -46,7 +48,10 @@ fn main() {
             std::process::exit(1);
         }
         ExpiryStatus::PasswordWarning(days_left) => {
-            println!("WARNING: Your password will expire in {} day(s).", days_left);
+            println!(
+                "WARNING: Your password will expire in {} day(s).",
+                days_left
+            );
         }
         ExpiryStatus::Ok => {}
     }

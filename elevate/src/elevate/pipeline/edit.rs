@@ -1,7 +1,7 @@
 use super::super::cli::ElevateEditOptions;
 use crate::common::{Context, DisplayOsStr, Error};
-use crate::log::{user_error, user_info};
 use crate::elevators::Authorization;
+use crate::log::{user_error, user_info};
 use crate::system::audit;
 
 pub fn run_edit(edit_opts: ElevateEditOptions) -> Result<(), Error> {

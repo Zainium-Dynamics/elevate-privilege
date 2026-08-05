@@ -34,7 +34,7 @@ fn check_shell(pamh: &mut PamHandle, _flags: i32, _args: &[String]) -> PamStatus
 
     // Check the configured shells file
     if let Ok(file) = File::open(elevate_paths::get().shells_file()) {
-        for line in BufReader::new(file).lines().flatten() {
+        for line in BufReader::new(file).lines().map_while(Result::ok) {
             let line = line.trim();
             if !line.starts_with('#') && line == user_shell {
                 return PamStatus::new(PAM_SUCCESS);

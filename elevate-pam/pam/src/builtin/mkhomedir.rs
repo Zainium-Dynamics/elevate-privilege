@@ -81,7 +81,10 @@ fn create_home(pamh: &mut PamHandle, _flags: i32, args: &[String]) -> PamStatus 
     }
 
     if !silent {
-        crate::log::info(pamh, &format!("mkhomedir: created home directory for '{user}'"));
+        crate::log::info(
+            pamh,
+            &format!("mkhomedir: created home directory for '{user}'"),
+        );
     }
     if debug {
         crate::log::debug(pamh, &format!("mkhomedir: skel={skel} umask={umask:04o}"));
@@ -107,18 +110,22 @@ fn copy_skel(src: &Path, dst: &Path, uid: u32, gid: u32) -> Result<(), String> {
         let entry = entry.map_err(|e| format!("readdir: {e}"))?;
         let src_path = entry.path();
         let dst_path = dst.join(entry.file_name());
-        let meta = entry.metadata().map_err(|e| format!("stat {}: {e}", src_path.display()))?;
+        let meta = entry
+            .metadata()
+            .map_err(|e| format!("stat {}: {e}", src_path.display()))?;
 
         if meta.is_dir() {
-            fs::create_dir_all(&dst_path).map_err(|e| format!("mkdir {}: {e}", dst_path.display()))?;
+            fs::create_dir_all(&dst_path)
+                .map_err(|e| format!("mkdir {}: {e}", dst_path.display()))?;
             let mode = meta.permissions().mode() & 0o7777;
             fs::set_permissions(&dst_path, fs::Permissions::from_mode(mode))
                 .map_err(|e| format!("chmod {}: {e}", dst_path.display()))?;
             chown(&dst_path, uid, gid)?;
             copy_skel(&src_path, &dst_path, uid, gid)?;
         } else if meta.is_file() {
-            fs::copy(&src_path, &dst_path)
-                .map_err(|e| format!("copy {} -> {}: {e}", src_path.display(), dst_path.display()))?;
+            fs::copy(&src_path, &dst_path).map_err(|e| {
+                format!("copy {} -> {}: {e}", src_path.display(), dst_path.display())
+            })?;
             let mode = meta.permissions().mode() & 0o7777;
             fs::set_permissions(&dst_path, fs::Permissions::from_mode(mode))
                 .map_err(|e| format!("chmod {}: {e}", dst_path.display()))?;
@@ -139,7 +146,11 @@ fn chown(path: &Path, uid: u32, gid: u32) -> Result<(), String> {
     // SAFETY: c_path is a valid NUL-terminated string for the lifetime of this call.
     let ret = unsafe { libc::chown(c_path.as_ptr(), uid, gid) };
     if ret != 0 {
-        Err(format!("chown {}: {}", path.display(), std::io::Error::last_os_error()))
+        Err(format!(
+            "chown {}: {}",
+            path.display(),
+            std::io::Error::last_os_error()
+        ))
     } else {
         Ok(())
     }
@@ -151,7 +162,11 @@ fn lchown(path: &Path, uid: u32, gid: u32) -> Result<(), String> {
     // SAFETY: c_path is a valid NUL-terminated string for the lifetime of this call.
     let ret = unsafe { libc::lchown(c_path.as_ptr(), uid, gid) };
     if ret != 0 {
-        Err(format!("lchown {}: {}", path.display(), std::io::Error::last_os_error()))
+        Err(format!(
+            "lchown {}: {}",
+            path.display(),
+            std::io::Error::last_os_error()
+        ))
     } else {
         Ok(())
     }

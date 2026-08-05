@@ -74,22 +74,22 @@ impl EventHandle {
     /// Ignore the event associated with this handle, meaning that the file descriptor for this
     /// event will not be polled anymore for that specific event.
     pub(super) fn ignore<T: Process>(&mut self, registry: &mut EventRegistry<T>) {
-        if self.should_poll {
-            if let Some(poll_fd) = registry.poll_fds.get_mut(self.id.0) {
-                poll_fd.should_poll = false;
-                self.should_poll = false;
-            }
+        if self.should_poll
+            && let Some(poll_fd) = registry.poll_fds.get_mut(self.id.0)
+        {
+            poll_fd.should_poll = false;
+            self.should_poll = false;
         }
     }
 
     /// Stop ignoring the event associated with this handle, meaning that the file descriptor for
     /// this event will be polled for that specific event.
     pub(super) fn resume<T: Process>(&mut self, registry: &mut EventRegistry<T>) {
-        if !self.should_poll {
-            if let Some(poll_fd) = registry.poll_fds.get_mut(self.id.0) {
-                poll_fd.should_poll = true;
-                self.should_poll = true;
-            }
+        if !self.should_poll
+            && let Some(poll_fd) = registry.poll_fds.get_mut(self.id.0)
+        {
+            poll_fd.should_poll = true;
+            self.should_poll = true;
         }
     }
 

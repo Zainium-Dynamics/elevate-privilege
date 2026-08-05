@@ -105,8 +105,9 @@ fn preserve_env_boolean_and_list() {
 
 #[test]
 fn preserve_env_repeated() {
-    let cmd = ElevateOptions::try_parse_from(["sudo", "--preserve-env=PATH", "--preserve-env=HOME"])
-        .unwrap();
+    let cmd =
+        ElevateOptions::try_parse_from(["sudo", "--preserve-env=PATH", "--preserve-env=HOME"])
+            .unwrap();
     assert_eq!(
         ["PATH", "HOME"],
         cmd.env_var_list
@@ -155,8 +156,9 @@ fn several_env_variables() {
 /// Divided by hyphens.
 #[test]
 fn mix_env_variables_with_trailing_args_divided_by_hyphens() {
-    let cmd = ElevateOptions::try_parse_from(["sudo", "env=var", "--", "external=args", "something"])
-        .unwrap();
+    let cmd =
+        ElevateOptions::try_parse_from(["sudo", "env=var", "--", "external=args", "something"])
+            .unwrap();
     assert_eq!(cmd.env_var_list, vec![("env".to_owned(), "var".to_owned())]);
     assert_eq!(cmd.positional_args, vec!["external=args", "something"]);
 }
@@ -178,8 +180,8 @@ fn mix_env_variables_with_trailing_args_divided_by_known_flag() {
 /// but look like a known flag.
 #[test]
 fn trailing_args_followed_by_known_flag() {
-    let cmd =
-        ElevateOptions::try_parse_from(["sudo", "args", "followed_by", "known_flag", "-i"]).unwrap();
+    let cmd = ElevateOptions::try_parse_from(["sudo", "args", "followed_by", "known_flag", "-i"])
+        .unwrap();
     assert!(!cmd.login);
     assert_eq!(
         cmd.positional_args,
@@ -493,10 +495,18 @@ fn run_no_command() {
 
 #[test]
 fn run_login() {
-    assert!(ElevateAction::try_parse_from(["sudo", "-i"]).unwrap().is_run());
+    assert!(
+        ElevateAction::try_parse_from(["sudo", "-i"])
+            .unwrap()
+            .is_run()
+    );
 }
 
 #[test]
 fn run_shell() {
-    assert!(ElevateAction::try_parse_from(["sudo", "-s"]).unwrap().is_run());
+    assert!(
+        ElevateAction::try_parse_from(["sudo", "-s"])
+            .unwrap()
+            .is_run()
+    );
 }

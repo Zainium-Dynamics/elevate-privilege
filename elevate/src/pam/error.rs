@@ -160,7 +160,9 @@ impl PamErrorType {
         // SAFETY: pam_strerror technically takes a pam handle as the first argument,
         // but we do not know of any implementation that actually uses the pamh
         // argument. See also the netbsd man page for `pam_strerror`.
-        let data = unsafe { (super::dynload::pam_lib().pam_strerror)(std::ptr::null_mut(), self.as_int()) };
+        let data = unsafe {
+            (super::dynload::pam_lib().pam_strerror)(std::ptr::null_mut(), self.as_int())
+        };
         if data.is_null() {
             String::from("Error unresolved by PAM")
         } else {

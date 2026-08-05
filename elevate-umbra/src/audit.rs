@@ -35,7 +35,8 @@ pub fn closelog() {
 /// Log a message to syslog at the given priority.
 pub fn syslog(priority: libc::c_int, message: &str) {
     let c_fmt = CString::new("%s").unwrap();
-    let c_msg = CString::new(message).unwrap_or_else(|_| CString::new("(invalid message)").unwrap());
+    let c_msg =
+        CString::new(message).unwrap_or_else(|_| CString::new("(invalid message)").unwrap());
     unsafe {
         libc::syslog(priority, c_fmt.as_ptr(), c_msg.as_ptr());
     }
@@ -65,7 +66,10 @@ pub fn audit_crit(prog: &str, msg: &str) {
 pub fn audit_user_op(prog: &str, op: &str, name: &str, uid: Option<u32>, result: bool) {
     let status = if result { "OK" } else { "FAILED" };
     let uid_str = uid.map(|u| format!(" uid={}", u)).unwrap_or_default();
-    let msg = format!("{}: op={} name={}{} result={}", prog, op, name, uid_str, status);
+    let msg = format!(
+        "{}: op={} name={}{} result={}",
+        prog, op, name, uid_str, status
+    );
     let priority = if result { LOG_INFO } else { LOG_CRIT };
     syslog(priority, &msg);
 }

@@ -14,7 +14,9 @@ use cli::ElevateAction;
 use std::{path::PathBuf, time::Duration};
 
 mod cli;
-pub(crate) use cli::{ElevateEditOptions, ElevateListOptions, ElevateRunOptions, ElevateValidateOptions};
+pub(crate) use cli::{
+    ElevateEditOptions, ElevateListOptions, ElevateRunOptions, ElevateValidateOptions,
+};
 mod edit;
 
 pub(crate) mod diagnostic;
