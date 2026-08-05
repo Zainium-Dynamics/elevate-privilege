@@ -128,6 +128,30 @@ mod test {
         test(&["! @ $"], "\\!\\ \\@\\ $");
     }
 
+    // CVE-2021-3156 ("Baron Samedit", real sudo): a heap buffer overflow
+    // from miscounting backslashes when pre-computing the escaped output's
+    // buffer size, triggered by trailing/repeated backslashes in shell-mode
+    // (`-s`/`-i`) arguments. This implementation has no separate
+    // size-precomputation pass to miscount in the first place -- the output
+    // `Vec` grows one push/extend at a time -- but this test locks in that
+    // heavily-backslashed input (including a lone trailing backslash, and
+    // runs long enough to matter if a future refactor reintroduces a
+    // pre-sized buffer) still escapes correctly and round-trips 1:1 in
+    // length terms (every backslash doubles, nothing else is dropped).
+    #[test]
+    fn test_escaped_handles_heavy_backslashes() {
+        let test = |src: &[&str], target: &str| {
+            assert_eq!(&escaped(src.iter().map(OsString::from).collect()), target);
+        };
+        test(&["\\"], "\\\\");
+        test(&["a\\"], "a\\\\");
+        test(&["\\\\\\\\"], "\\\\\\\\\\\\\\\\");
+        test(&["a\\b\\c"], "a\\\\b\\\\c");
+        let many = "\\".repeat(200);
+        let expected: String = many.chars().flat_map(|c| ['\\', c]).collect();
+        test(&[&many], &expected);
+    }
+
     #[test]
     fn test_build_command_and_args() {
         assert_eq!(

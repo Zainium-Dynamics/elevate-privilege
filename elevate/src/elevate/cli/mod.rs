@@ -111,7 +111,7 @@ impl TryFrom<ElevateOptions> for ElevateResetTimestampOptions {
     }
 }
 
-// sudo -v [-ABkNnS] [-g group] [-h host] [-p prompt] [-u user]
+// sudo -v [-ABkNnS] [-g group] [-p prompt] [-u user]
 pub struct ElevateValidateOptions {
     // -A
     pub askpass: bool,
@@ -171,7 +171,7 @@ impl TryFrom<ElevateOptions> for ElevateValidateOptions {
     }
 }
 
-// sudo -e [-ABkNnS] [-r role] [-t type] [-C num] [-D directory] [-g group] [-h host] [-p prompt] [-R directory] [-T timeout] [-u user] file ...
+// sudo -e [-ABkNnS] [-r role] [-t type] [-C num] [-D directory] [-g group] [-p prompt] [-T timeout] [-u user] file ...
 pub struct ElevateEditOptions {
     // -A
     pub askpass: bool,
@@ -242,7 +242,7 @@ impl TryFrom<ElevateOptions> for ElevateEditOptions {
     }
 }
 
-// sudo -l [-ABkNnS] [-g group] [-h host] [-p prompt] [-U user] [-u user] [command [arg ...]]
+// sudo -l [-ABkNnS] [-g group] [-p prompt] [-U user] [-u user] [command [arg ...]]
 pub struct ElevateListOptions {
     // -A
     pub askpass: bool,
@@ -322,7 +322,7 @@ impl TryFrom<ElevateOptions> for ElevateListOptions {
     }
 }
 
-// sudo [-ABbEHnPS] [-C num] [-D directory] [-g group] [-h host] [-p prompt] [-R directory] [-T timeout] [-u user] [VAR=value] [-i | -s] [command [arg ...]]
+// sudo [-ABbEHnPS] [-C num] [-D directory] [-g group] [-p prompt] [-T timeout] [-u user] [VAR=value] [-i | -s] [command [arg ...]]
 pub struct ElevateRunOptions {
     // -A
     pub askpass: bool,
@@ -508,16 +508,17 @@ fn demand_utf8(arg: &OsStr) -> String {
 }
 
 impl ElevateArg {
-    const TAKES_ARGUMENT_SHORT: &'static [char] = &['D', 'g', 'h', 'p', 'R', 'U', 'u'];
-    const TAKES_ARGUMENT: &'static [&'static str] = &[
-        "chdir",
-        "group",
-        "host",
-        "chroot",
-        "other-user",
-        "user",
-        "prompt",
-    ];
+    // `-h`/`--host` and `-R`/`--chroot` are intentionally NOT recognized:
+    // `--host` would need a remote-execution subsystem this codebase
+    // doesn't have, and `--chroot` is the exact CVE-2025-32463 class of
+    // bug in real sudo (crafted chroot + nsswitch config -> arbitrary code
+    // as root) -- not something to accept-then-silently-fail on, or to
+    // half-implement under time pressure. `-h` alone still works as
+    // `--help` via the plain-flag path below (see the `-h`/`--help` match
+    // arm), it's just never treated as taking an argument.
+    const TAKES_ARGUMENT_SHORT: &'static [char] = &['D', 'g', 'p', 'U', 'u'];
+    const TAKES_ARGUMENT: &'static [&'static str] =
+        &["chdir", "group", "other-user", "user", "prompt"];
 
     /// argument assignments and shorthand options preprocessing
     /// the iterator should only iterate over the actual arguments
@@ -585,9 +586,6 @@ impl ElevateArg {
                             let next = str::from_utf8(next.as_encoded_bytes())
                                 .map_err(|_| demand_utf8(&next))?;
                             processed.push(ElevateArg::Argument(flag, next.to_owned()));
-                        } else if curr == 'h' {
-                            // short version of --help has no arguments
-                            processed.push(ElevateArg::Flag(flag));
                         } else {
                             Err(xlat!("'{option}' expects an argument", option = flag))?;
                         }

@@ -266,6 +266,28 @@ mod tests {
         assert_eq!(NameOrId::<u32>::parse(&"#-1".into()), None);
     }
 
+    // CVE-2019-14287 (real sudo): `sudo -u#-1` was accepted and wrapped to
+    // uid 0 (root) via a signed-to-unsigned cast, bypassing
+    // `Runas_Alias ALL, !root`-style name-based negation rules that never
+    // see "root" as the resolved identity. Regression-locks that `#<id>`
+    // parsing uses checked, non-wrapping integer parsing: negative and
+    // out-of-range values must be rejected outright, never silently
+    // reinterpreted as a different (especially privileged) uid.
+    #[test]
+    fn numeric_user_spec_never_wraps_to_a_different_uid() {
+        assert_eq!(NameOrId::<u32>::parse(&"#-1".into()), None);
+        assert_eq!(NameOrId::<u32>::parse(&"#-4294967295".into()), None);
+        // The only way to explicitly request root is the literal uid 0 --
+        // never via a negative number that happens to wrap to it.
+        assert_eq!(NameOrId::<u32>::parse(&"#0".into()), Some(NameOrId::Id(0)));
+        assert_eq!(
+            NameOrId::<u32>::parse(&"#4294967295".into()), // u32::MAX, in range
+            Some(NameOrId::Id(u32::MAX))
+        );
+        // One past u32::MAX must fail closed, not wrap back to a small uid.
+        assert_eq!(NameOrId::<u32>::parse(&"#4294967296".into()), None);
+    }
+
     #[test]
     fn test_resolve_target_user_and_group() {
         let current_user = CurrentUser::resolve().unwrap();

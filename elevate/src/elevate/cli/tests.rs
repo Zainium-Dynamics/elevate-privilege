@@ -510,3 +510,38 @@ fn run_shell() {
             .is_run()
     );
 }
+
+// -h/--host and -R/--chroot are intentionally unimplemented (see
+// ElevateArg::TAKES_ARGUMENT's doc comment) -- they must be cleanly
+// rejected as unrecognized, not silently accepted and only fail later.
+#[test]
+fn host_flag_is_rejected() {
+    // `-h` alone is unambiguously `--help` now (never takes an argument),
+    // so trailing args are just ignored, same as real `--help` behavior --
+    // it's the explicit long forms that must be rejected outright.
+    assert!(
+        ElevateAction::try_parse_from(["sudo", "-h", "example.com", "true"])
+            .unwrap()
+            .is_help()
+    );
+    assert!(ElevateAction::try_parse_from(["sudo", "--host", "example.com", "true"]).is_err());
+    assert!(ElevateAction::try_parse_from(["sudo", "--host=example.com", "true"]).is_err());
+}
+
+#[test]
+fn chroot_flag_is_rejected() {
+    assert!(ElevateAction::try_parse_from(["sudo", "-R", "/mnt", "true"]).is_err());
+    assert!(ElevateAction::try_parse_from(["sudo", "--chroot", "/mnt", "true"]).is_err());
+    assert!(ElevateAction::try_parse_from(["sudo", "--chroot=/mnt", "true"]).is_err());
+}
+
+// -h alone still means --help, unambiguously (it's no longer overloaded
+// with a possible --host argument).
+#[test]
+fn bare_h_flag_still_means_help() {
+    assert!(
+        ElevateAction::try_parse_from(["sudo", "-h"])
+            .unwrap()
+            .is_help()
+    );
+}

@@ -21,6 +21,25 @@ use settings_dsl::{
     result_of, storage_of,
 };
 
+// Scope: upstream sudo has ~163 `Defaults` settings (plugins/sudoers/def_data.in).
+// The ~31 below are a deliberate, curated subset -- the ones that affect
+// security-relevant behavior this codebase actually implements (auth,
+// environment filtering, timestamps, umask, exec). Settings NOT listed
+// here are intentionally out of scope, not accidentally missing:
+//   - I/O logging family (log_input/log_output/iolog_*): no I/O logging
+//     subsystem exists in this codebase at all (see also NOTICE.md /
+//     elevate's own docs on scope) -- there's nothing for these to
+//     configure yet.
+//   - Command interception (intercept, log_subcmds, fdexec): same reason,
+//     no intercept subsystem.
+//   - closefrom, command_timeout, log_allowed, log_denied: not yet wired
+//     to any corresponding behavior; adding the Defaults key without the
+//     mechanism behind it would silently accept the setting and do
+//     nothing, which is worse than not recognizing it.
+// If a `Defaults` line the parser doesn't recognize is a genuine gap
+// rather than an intentional one, it's a real bug -- file it rather than
+// assuming this list is exhaustive by design.
+//
 // NOTE: this build targets ZainiumOS — no /bin, /usr at root at all;
 // everything lives under the configured prefix. We also drop /usr/bin/editor
 // since that path is a Debian-specific update-alternatives symlink that
