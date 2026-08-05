@@ -1,15 +1,18 @@
 //! Built-in modules always available in static / standalone (and as fallback in shared).
 
+mod access;
 mod debug;
 mod deny;
 mod echo;
 mod env;
 mod exec;
 mod faildelay;
+mod faillock;
 mod issue;
 mod limits;
 mod localuser;
 mod mail;
+mod mkhomedir;
 mod motd;
 mod nologin;
 mod permit;
@@ -49,6 +52,9 @@ pub fn register_all() {
     register_one(usertype::hooks());
     register_one(echo::hooks());
     register_one(debug::hooks());
+    register_one(access::hooks());
+    register_one(faillock::hooks());
+    register_one(mkhomedir::hooks());
 
     // aliases without path
     register_alias("pam_permit.so", "permit");
@@ -73,6 +79,9 @@ pub fn register_all() {
     register_alias("pam_usertype.so", "usertype");
     register_alias("pam_echo.so", "echo");
     register_alias("pam_debug.so", "debug");
+    register_alias("pam_access.so", "access");
+    register_alias("pam_faillock.so", "faillock");
+    register_alias("pam_mkhomedir.so", "mkhomedir");
 }
 
 fn register_one(hooks: ModuleHooks) {

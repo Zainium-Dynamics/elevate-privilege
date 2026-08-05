@@ -196,6 +196,14 @@ impl PathsConfig {
     pub fn limits_conf(&self) -> String {
         format!("{}/security/limits.conf", self.etc_dir())
     }
+    /// `pam-access` config (`access.conf(5)`).
+    pub fn access_conf(&self) -> String {
+        format!("{}/security/access.conf", self.etc_dir())
+    }
+    /// `pam-faillock` per-user tally directory.
+    pub fn faillock_dir(&self) -> String {
+        format!("{}/faillock", self.var_dir.trim_end_matches('/'))
+    }
     pub fn skel_dir(&self) -> String {
         format!("{}/skel", self.etc_dir())
     }

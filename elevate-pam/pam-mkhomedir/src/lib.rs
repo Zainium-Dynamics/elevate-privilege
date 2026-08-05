@@ -33,7 +33,7 @@ macro_rules! sm {
             elevate_pam::module::global::ensure_builtins();
             let Some(h) = pamh_mut(pamh) else { return PAM_SYSTEM_ERR; };
             let args = args_from_c(argc, argv);
-            let id = ModuleId::normalize("permit");
+            let id = ModuleId::normalize("mkhomedir");
             let Some(hooks) = elevate_pam::module::global::get(&id) else {
                 return PAM_MODULE_UNKNOWN;
             };
