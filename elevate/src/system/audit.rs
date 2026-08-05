@@ -478,13 +478,25 @@ mod test {
             groups: vec![],
         });
 
-        // allowed!
-        let path = std::env::current_dir()
-            .unwrap()
-            .join("elevate-test-file.txt");
+        // allowed! -- must live under a directory that's secure the whole
+        // way down to "/". `current_dir()` doesn't guarantee that (e.g. a
+        // checkout on a permissively-mounted drive, or a CI build directory
+        // GitLab's Docker executor sometimes leaves world-writable) -- use
+        // $HOME (or /root, matching a CI-as-root fallback) instead, which
+        // the OS itself creates as owner-only (0700).
+        use std::os::unix::fs::PermissionsExt;
+        let home = std::env::var_os("HOME")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| std::path::PathBuf::from("/root"));
+        let dir = home.join(".elevate-test-secure-open");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+
+        let path = dir.join("elevate-test-file.txt");
         let file = traversed_secure_open(&path, &other_user, &user, &user.group()).unwrap();
         if file.metadata().is_ok_and(|meta| meta.len() == 0) {
-            std::fs::remove_file(path).unwrap();
+            std::fs::remove_file(&path).unwrap();
         }
+        std::fs::remove_dir(&dir).ok();
     }
 }

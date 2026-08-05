@@ -109,13 +109,28 @@ fmt:
 # test
 # =============================================================================
 
+# Several tests are real privilege/permission security checks (Zero-Trust
+# Core Protector, secure_open traversal, non-root-only sudoers-equivalent
+# behavior) that assume a non-root caller, same as production use --
+# running them as literal root (this job's default user in the rust:latest
+# image) breaks that assumption (root bypasses the very permission checks
+# being tested) and isn't representative of real usage anyway. Also needs
+# tzdata for the TZ-environment-variable safety test -- rust:latest is
+# minimal and doesn't ship it.
 test:
   extends: .cargo_job
   stage: test
   timeout: 45m
+  before_script:
+    - rustc --version && cargo --version
+    - rustup show
+    - DEBIAN_FRONTEND=noninteractive TZ=UTC apt-get update -qq
+    - DEBIAN_FRONTEND=noninteractive TZ=UTC apt-get install -y -qq tzdata
+    - id -u citest >/dev/null 2>&1 || useradd -m citest
+    - chown -R citest:citest "$CI_PROJECT_DIR"
   script:
-    - cargo test --workspace --lib
-    - cargo test --workspace --tests
+    - su citest -c "cargo test --workspace --lib"
+    - su citest -c "cargo test --workspace --tests"
 
 # =============================================================================
 # build
