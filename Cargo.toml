@@ -47,6 +47,8 @@ members = [
     "elevate-pam/pam-filter",
     "elevate-pam/pam-ftp",
     "elevate-pam/pam-stress",
+    "elevate-pam/pam-tally2",
+    "elevate-pam/pam-namespace",
     "elevate-pam/helpers/unix_chkpwd",
     # sudo replacement
     "elevate",

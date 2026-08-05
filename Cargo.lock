@@ -573,6 +573,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "pam-namespace"
+version = "1.0.0"
+dependencies = [
+ "elevate-pam",
+ "libc",
+]
+
+[[package]]
 name = "pam-nologin"
 version = "1.0.0"
 dependencies = [
@@ -614,6 +622,14 @@ dependencies = [
 
 [[package]]
 name = "pam-stress"
+version = "1.0.0"
+dependencies = [
+ "elevate-pam",
+ "libc",
+]
+
+[[package]]
+name = "pam-tally2"
 version = "1.0.0"
 dependencies = [
  "elevate-pam",

@@ -14,12 +14,14 @@ mod localuser;
 mod mail;
 mod mkhomedir;
 mod motd;
+mod namespace;
 mod nologin;
 mod permit;
 mod rootok;
 mod securetty;
 mod shells;
 mod succeed_if;
+mod tally2;
 mod umask;
 mod unix;
 mod usertype;
@@ -55,6 +57,8 @@ pub fn register_all() {
     register_one(access::hooks());
     register_one(faillock::hooks());
     register_one(mkhomedir::hooks());
+    register_one(tally2::hooks());
+    register_one(namespace::hooks());
 
     // aliases without path
     register_alias("pam_permit.so", "permit");
@@ -82,6 +86,8 @@ pub fn register_all() {
     register_alias("pam_access.so", "access");
     register_alias("pam_faillock.so", "faillock");
     register_alias("pam_mkhomedir.so", "mkhomedir");
+    register_alias("pam_tally2.so", "tally2");
+    register_alias("pam_namespace.so", "namespace");
 }
 
 fn register_one(hooks: ModuleHooks) {

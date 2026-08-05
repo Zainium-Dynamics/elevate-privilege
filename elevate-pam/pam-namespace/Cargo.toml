@@ -1,0 +1,16 @@
+[package]
+name = "pam-namespace"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "elevate-pam namespace module (per-user directory polyinstantiation)"
+publish = false
+
+[lib]
+name = "pam_namespace"
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+elevate-pam = { workspace = true }
+libc = { workspace = true }

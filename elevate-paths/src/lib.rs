@@ -208,6 +208,15 @@ impl PathsConfig {
     pub fn faillock_dir(&self) -> String {
         format!("{}/faillock", self.var_dir.trim_end_matches('/'))
     }
+    /// `pam-tally2` per-user tally directory (separate from faillock's so
+    /// the two don't cross-contaminate if both are configured).
+    pub fn tallylog_dir(&self) -> String {
+        format!("{}/tallylog", self.var_dir.trim_end_matches('/'))
+    }
+    /// `pam-namespace` polyinstantiation config (`namespace.conf(5)`-style).
+    pub fn namespace_conf(&self) -> String {
+        format!("{}/security/namespace.conf", self.etc_dir())
+    }
     pub fn skel_dir(&self) -> String {
         format!("{}/skel", self.etc_dir())
     }

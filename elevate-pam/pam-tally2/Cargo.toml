@@ -1,0 +1,16 @@
+[package]
+name = "pam-tally2"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "elevate-pam tally2 module (legacy pam_faillock-compatible tally)"
+publish = false
+
+[lib]
+name = "pam_tally2"
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+elevate-pam = { workspace = true }
+libc = { workspace = true }

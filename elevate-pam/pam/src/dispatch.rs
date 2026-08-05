@@ -20,9 +20,63 @@ enum Impression {
     Negative,
 }
 
+/// Recursively splice `include` entries' referenced stacks in place,
+/// matching upstream `_pam_dispatch_aux`'s "as if written directly here"
+/// semantics: an included `sufficient` line can short-circuit the *whole*
+/// outer stack, because after this resolution it genuinely *is* part of
+/// the outer stack, not a separate isolated sub-evaluation.
+///
+/// `substack` entries are deliberately left unresolved here -- unlike
+/// `include`, a substack's `done`/`die`/`requisite`-failure is confined to
+/// the substack itself and its overall pass/fail folds into the parent
+/// stack as a single outcome, which is what the isolated
+/// `dispatch_entries` call in the main loop already does correctly.
+#[cfg(feature = "std")]
+fn resolve_includes(
+    global: &crate::config::GlobalConfig,
+    entries: &[ModuleEntry],
+    kind: StackKind,
+    depth: u32,
+) -> PamResult<Vec<ModuleEntry>> {
+    let max_depth = global.security.max_include_depth;
+    let mut out = Vec::with_capacity(entries.len());
+    for entry in entries {
+        if entry.control != ControlFlag::Include {
+            out.push(entry.clone());
+            continue;
+        }
+        if depth >= max_depth {
+            if entry.optional_load {
+                continue;
+            }
+            return Err(crate::error::PamError::Config(alloc::format!(
+                "include depth exceeded ({max_depth}) resolving '{}'",
+                entry.module
+            )));
+        }
+        match crate::config::ServiceConfig::load_service(global, &entry.module) {
+            Ok(nested) => {
+                let nested_entries = nested.stack_for(kind).to_vec();
+                let resolved = resolve_includes(global, &nested_entries, kind, depth + 1)?;
+                out.extend(resolved);
+            }
+            Err(e) => {
+                if !entry.optional_load {
+                    return Err(e);
+                }
+            }
+        }
+    }
+    Ok(out)
+}
+
 /// Dispatch the configured stack for `kind`.
 pub fn dispatch(pamh: &mut PamHandle, flags: i32, kind: StackKind) -> PamResult<PamStatus> {
-    let entries: Vec<ModuleEntry> = pamh.service.stack_for(kind).to_vec();
+    let raw_entries: Vec<ModuleEntry> = pamh.service.stack_for(kind).to_vec();
+    #[cfg(feature = "std")]
+    let entries = resolve_includes(&pamh.global, &raw_entries, kind, 0)?;
+    #[cfg(not(feature = "std"))]
+    let entries = raw_entries;
     if entries.is_empty() {
         #[cfg(feature = "std")]
         crate::log::error(
@@ -47,8 +101,14 @@ pub fn dispatch(pamh: &mut PamHandle, flags: i32, kind: StackKind) -> PamResult<
     while i < entries.len() {
         let entry = &entries[i];
 
-        // include / substack: load nested service and run (simplified: same file refs)
-        if matches!(entry.control, ControlFlag::Include | ControlFlag::Substack) {
+        // substack: dispatch the nested service's stack in isolation (its own
+        // impression/status accumulator) and fold the single outcome into
+        // this stack with required-like semantics. `include` no longer
+        // reaches this point -- resolve_includes() already spliced it
+        // directly into `entries` above, so an included `sufficient` (etc.)
+        // participates in *this* loop's own impression/status directly,
+        // matching upstream's "as if written here" semantics.
+        if entry.control == ControlFlag::Substack {
             let nested_name = &entry.module;
             #[cfg(feature = "std")]
             {
@@ -316,4 +376,125 @@ pub fn dispatch_test_stack(
 ) -> PamResult<PamStatus> {
     let category = BuildCategory::Standalone;
     dispatch_entries(pamh, flags, kind, entries, category, "")
+}
+
+#[cfg(all(test, feature = "std"))]
+mod tests {
+    use super::*;
+    use crate::config::GlobalConfig;
+
+    fn entry(control: ControlFlag, module: &str) -> ModuleEntry {
+        ModuleEntry {
+            control,
+            module: module.to_string(),
+            args: Vec::new(),
+            optional_load: false,
+            actions: None,
+        }
+    }
+
+    fn global_with_services_dir(dir: &std::path::Path) -> GlobalConfig {
+        let mut global = GlobalConfig::default();
+        global.paths.services_dir = dir.to_string_lossy().into_owned();
+        global
+    }
+
+    #[test]
+    fn resolve_includes_splices_nested_entries_in_place() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("common-auth.toml"),
+            r#"
+[service]
+name = "common-auth"
+
+[[auth]]
+control = "sufficient"
+module = "permit"
+"#,
+        )
+        .unwrap();
+
+        let global = global_with_services_dir(dir.path());
+        let entries = vec![
+            entry(ControlFlag::Include, "common-auth"),
+            entry(ControlFlag::Required, "deny"),
+        ];
+
+        let resolved = resolve_includes(&global, &entries, StackKind::Auth, 0).unwrap();
+
+        // The include is replaced in place by its referenced stack's own
+        // entries, with their own control flags intact (not forced to
+        // Required) -- not folded into a single opaque outcome.
+        assert_eq!(resolved.len(), 2);
+        assert_eq!(resolved[0].control, ControlFlag::Sufficient);
+        assert_eq!(resolved[0].module, "permit");
+        assert_eq!(resolved[1].control, ControlFlag::Required);
+        assert_eq!(resolved[1].module, "deny");
+    }
+
+    #[test]
+    fn resolve_includes_depth_limit_errors_when_not_optional() {
+        let global = GlobalConfig::default(); // max_include_depth defaults to 32
+        let entries = vec![entry(ControlFlag::Include, "whatever")];
+        let result = resolve_includes(&global, &entries, StackKind::Auth, 32);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn resolve_includes_depth_limit_skips_when_optional() {
+        let global = GlobalConfig::default();
+        let mut e = entry(ControlFlag::Include, "whatever");
+        e.optional_load = true;
+        let result = resolve_includes(&global, &[e], StackKind::Auth, 32).unwrap();
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn included_sufficient_short_circuits_the_whole_outer_stack() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("common-auth.toml"),
+            r#"
+[service]
+name = "common-auth"
+
+[[auth]]
+control = "sufficient"
+module = "permit"
+"#,
+        )
+        .unwrap();
+        std::fs::write(
+            dir.path().join("test.toml"),
+            r#"
+[service]
+name = "test"
+
+[[auth]]
+control = "include"
+module = "common-auth"
+
+[[auth]]
+control = "required"
+module = "deny"
+"#,
+        )
+        .unwrap();
+
+        let global = global_with_services_dir(dir.path());
+        let mut pamh = crate::appl::PamBuilder::new("test")
+            .global(global)
+            .start(crate::conv::PamConv::default())
+            .unwrap();
+
+        // If the include were still folded into an isolated,
+        // required-semantics sub-evaluation (the pre-fix behavior), its
+        // success wouldn't stop the outer stack, and the unconditional
+        // `deny` right after it would flip the whole result to failure.
+        // With real splicing, the included `sufficient` success is
+        // evaluated directly against the outer stack and short-circuits
+        // it -- `deny` is never reached.
+        assert!(pamh.authenticate(0).is_ok());
+    }
 }
