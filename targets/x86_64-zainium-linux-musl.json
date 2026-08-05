@@ -14,7 +14,7 @@
   "llvm-target": "x86_64-zainium-linux-musl",
   "max-atomic-width": 64,
   "metadata": {
-    "description": "Zainium OS: 64-bit musl userspace, crosstool-NG toolchain (GCC 15.3.0-ZainiumOS)",
+    "description": "Zainium OS: 64-bit musl userspace, crosstool-NG toolchain ",
     "host_tools": false,
     "std": true,
     "tier": 3
