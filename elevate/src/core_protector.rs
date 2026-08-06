@@ -38,16 +38,34 @@ fn protected_prefixes() -> Vec<String> {
 /// every argument, not just the last one.
 const PROTECTED_COMMANDS: &[&str] = &["rm", "rmdir", "mv", "shred", "unlink", "cp", "rsync"];
 
-/// Only this EXACT command line (binary base name + arguments) is allowed
-/// as an override -- the legitimate system-upgrade use case, where syshub's
-/// old files legitimately need to be replaced/deleted.
+/// Only these EXACT command lines (binary base name "zex" + arguments) are
+/// allowed as an override -- the legitimate system-upgrade use case, where
+/// syshub's old files legitimately need to be replaced/deleted.
 ///
-/// NOTE: this only matches arguments launched exactly as `zex syshub -u`
-/// (or an equivalent exact-match command). If the upgrade command's
-/// arguments differ at all (extra flags, different order), this override
-/// will NOT match -- this is intentionally strict so that nobody can
-/// easily use "upgrade" as an excuse to bypass protection.
-const UPGRADE_OVERRIDE_ARGV: &[&str] = &["zex", "syshub", "-u"];
+/// Every pattern here is one that can ONLY touch syshub (never userland) --
+/// confirmed against zex's real CLI (`zex/src/cmd/upgrade/main.rs`,
+/// `zex/src/cmd/update/main.rs`): `syshub`'s `-u`/`--u`/`--upgrade` are all
+/// clap aliases for the same flag, and `update --syshub-only` scopes the
+/// combined updater to syshub alone (with or without `-y`/`--yes`).
+///
+/// Deliberately NOT included: bare `zex update` / `zex update --yes` (these
+/// also touch userland, so they're not an exclusively-syshub pattern), and
+/// any `zex uland ...` / `zex update --uland-only` form (these never touch
+/// syshub at all, so they need no override here -- listing them would only
+/// widen this allowlist without a reason tied to the core-protector's job).
+///
+/// NOTE: if the upgrade command's arguments differ at all from one of these
+/// exact patterns (extra flags, different order), the override will NOT
+/// match -- this is intentionally strict so that nobody can easily use
+/// "upgrade" as an excuse to bypass protection.
+const UPGRADE_OVERRIDE_PATTERNS: &[&[&str]] = &[
+    &["syshub", "-u"],
+    &["syshub", "--u"],
+    &["syshub", "--upgrade"],
+    &["update", "--syshub-only"],
+    &["update", "--syshub-only", "-y"],
+    &["update", "--syshub-only", "--yes"],
+];
 
 /// Result indicating whether a command is allowed or blocked.
 pub enum CoreProtectorVerdict {
@@ -101,21 +119,19 @@ fn path_is_protected(raw_arg: &OsStr) -> Option<String> {
     None
 }
 
-/// Checks whether this exact command matches the "zex syshub -u" upgrade
-/// override.
+/// Checks whether this exact command matches one of the "zex syshub ..."
+/// upgrade override patterns (see `UPGRADE_OVERRIDE_PATTERNS`).
 fn matches_upgrade_override(command_base: &str, args: &[std::ffi::OsString]) -> bool {
-    if command_base != UPGRADE_OVERRIDE_ARGV[0] {
+    if command_base != "zex" {
         return false;
     }
     let rest: Vec<String> = args
         .iter()
         .map(|a| a.to_string_lossy().into_owned())
         .collect();
-    rest.len() == UPGRADE_OVERRIDE_ARGV.len() - 1
-        && rest
-            .iter()
-            .zip(&UPGRADE_OVERRIDE_ARGV[1..])
-            .all(|(a, b)| a == b)
+    UPGRADE_OVERRIDE_PATTERNS.iter().any(|pattern| {
+        rest.len() == pattern.len() && rest.iter().zip(*pattern).all(|(a, b)| a == b)
+    })
 }
 
 /// Main entry point: checks the given command (binary path/name +
@@ -265,5 +281,59 @@ mod tests {
             &args(&["/home/user/a.txt", "/home/user/b.txt"]),
         );
         assert!(matches!(verdict, CoreProtectorVerdict::Allowed));
+    }
+
+    #[test]
+    fn upgrade_override_matches_all_syshub_patterns() {
+        for pattern in &[
+            &["syshub", "-u"][..],
+            &["syshub", "--u"][..],
+            &["syshub", "--upgrade"][..],
+            &["update", "--syshub-only"][..],
+            &["update", "--syshub-only", "-y"][..],
+            &["update", "--syshub-only", "--yes"][..],
+        ] {
+            assert!(
+                matches_upgrade_override("zex", &args(pattern)),
+                "expected override to match: zex {}",
+                pattern.join(" ")
+            );
+        }
+    }
+
+    #[test]
+    fn upgrade_override_rejects_uland_patterns() {
+        // uland never touches syshub -- it must NOT be treated as a
+        // core-protector override, even though it's a legitimate zex command.
+        for pattern in &[
+            &["uland", "-u"][..],
+            &["uland", "--u"][..],
+            &["uland", "--upgrade"][..],
+            &["update", "--uland-only"][..],
+        ] {
+            assert!(
+                !matches_upgrade_override("zex", &args(pattern)),
+                "override must NOT match uland-only command: zex {}",
+                pattern.join(" ")
+            );
+        }
+    }
+
+    #[test]
+    fn upgrade_override_rejects_bare_and_mixed_update() {
+        // Bare "zex update" (and "--yes" alone) touches BOTH syshub and
+        // userland -- not an exclusively-syshub pattern, so it stays out of
+        // this allowlist on purpose (see UPGRADE_OVERRIDE_PATTERNS doc).
+        for pattern in &[
+            &["update"][..],
+            &["update", "--yes"][..],
+            &["update", "-y"][..],
+        ] {
+            assert!(
+                !matches_upgrade_override("zex", &args(pattern)),
+                "override must NOT match ambiguous command: zex {}",
+                pattern.join(" ")
+            );
+        }
     }
 }
