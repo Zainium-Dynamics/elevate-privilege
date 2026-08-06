@@ -72,7 +72,14 @@ mapfile -t PAM_MODULE_CRATES < <(
 # =============================================================================
 # dynamic
 # =============================================================================
-build_dynamic() {
+# Body is `( ... )` (subshell), not `{ ... }` -- the PATH export below must
+# NOT leak into build_static(), which needs the host's own cc/ld. Bash
+# functions otherwise share the caller's shell environment (no subshell),
+# so a plain `export PATH=...` here would silently make the static build
+# pick up the Zainium cross-toolchain's `ld` too -- which then fails
+# loading the host gcc's LTO plugin (built against a different libc/glibc
+# than that ld expects): "error loading plugin: ... symbol not found".
+build_dynamic() (
   if [[ ! -d "$ZAINIUM_TOOLCHAIN_BIN" ]]; then
     warn "Zainium toolchain not found at $ZAINIUM_TOOLCHAIN_BIN"
     warn "set ZAINIUM_TOOLCHAIN_BIN to the toolchain's bin/ dir"
@@ -125,7 +132,7 @@ build_dynamic() {
   [[ ${#missing[@]} -gt 0 ]] && warn "PAM modules not built (${#missing[@]}): ${missing[*]}"
 
   log "dynamic artifacts staged under $DIST/overlayer/syshub/lib{,/security}"
-}
+)
 
 # =============================================================================
 # static
