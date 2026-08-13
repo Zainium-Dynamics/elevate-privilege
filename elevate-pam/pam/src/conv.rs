@@ -4,6 +4,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::constants::{PAM_CONV_ERR, PAM_PROMPT_ECHO_OFF, PAM_PROMPT_ECHO_ON, PAM_SUCCESS};
+#[cfg(feature = "std")]
+use crate::constants::{PAM_BUF_ERR, PAM_ERROR_MSG, PAM_TEXT_INFO};
 use crate::error::{PamError, PamResult, PamStatus};
 use crate::types::{Message, MsgStyle, Response};
 
@@ -198,4 +200,132 @@ pub fn conv_echo_on(conv: &PamConv, prompt: &str) -> PamResult<String> {
         libc::free(resp_ptr as *mut libc::c_void);
     }
     Ok(result)
+}
+
+/// Bridge a boxed [`Converser`] into a raw C [`PamConv`], for an
+/// *application* (not a module) to hand to
+/// [`crate::appl::PamBuilder::start`]. This is the missing piece that lets
+/// an app implement the safe [`Converser`] trait instead of writing its own
+/// `unsafe extern "C" fn` conversation callback by hand.
+///
+/// The converser is heap-allocated and ownership moves into the returned
+/// `PamConv`'s `appdata_ptr`. Reclaim it with [`free_converser`] once the
+/// PAM transaction (`PamHandle::end`) is done — forgetting to call it leaks
+/// the converser, it does not corrupt anything, since the pointer is never
+/// read again after that point.
+#[cfg(feature = "std")]
+pub fn pam_conv_from_converser(converser: alloc::boxed::Box<dyn Converser>) -> PamConv {
+    let boxed_twice: alloc::boxed::Box<alloc::boxed::Box<dyn Converser>> =
+        alloc::boxed::Box::new(converser);
+    let appdata_ptr = alloc::boxed::Box::into_raw(boxed_twice) as *mut core::ffi::c_void;
+    PamConv {
+        conv: Some(converser_trampoline),
+        appdata_ptr,
+    }
+}
+
+/// Reclaim and drop a [`Converser`] previously moved into a `PamConv` by
+/// [`pam_conv_from_converser`].
+///
+/// # Safety
+/// `conv.appdata_ptr` must be a pointer produced by
+/// [`pam_conv_from_converser`] on this same `conv`, and must not already
+/// have been reclaimed by a prior call.
+#[cfg(feature = "std")]
+pub unsafe fn free_converser(conv: &PamConv) {
+    if !conv.appdata_ptr.is_null() {
+        drop(unsafe {
+            alloc::boxed::Box::from_raw(conv.appdata_ptr as *mut alloc::boxed::Box<dyn Converser>)
+        });
+    }
+}
+
+/// The `PamConvFn` trampoline behind [`pam_conv_from_converser`]. Marshals
+/// the C `pam_message` array into `&[Message]`, calls the boxed
+/// [`Converser`], then marshals its `Vec<Response>` back into a
+/// `libc::malloc`-allocated `pam_response` array — matching the allocator
+/// [`conv_echo_off`]/[`conv_echo_on`] above use to free responses coming
+/// the *other* direction (module calling an app's conv fn), so either side
+/// of this crate frees with `libc::free` consistently.
+#[cfg(feature = "std")]
+unsafe extern "C" fn converser_trampoline(
+    num_msg: i32,
+    msg: *mut *const CPamMessage,
+    resp: *mut *mut CPamResponse,
+    appdata_ptr: *mut core::ffi::c_void,
+) -> i32 {
+    if appdata_ptr.is_null() || msg.is_null() || resp.is_null() || num_msg < 0 {
+        return PAM_CONV_ERR;
+    }
+    // SAFETY: appdata_ptr was produced by pam_conv_from_converser's
+    // Box::into_raw and is still live (caller contract: not yet freed).
+    let converser: &mut alloc::boxed::Box<dyn Converser> =
+        unsafe { &mut *(appdata_ptr as *mut alloc::boxed::Box<dyn Converser>) };
+
+    let count = num_msg as usize;
+    let mut messages = Vec::with_capacity(count);
+    for i in 0..count {
+        // SAFETY: PAM contract guarantees `msg` points to `num_msg` valid
+        // `*const CPamMessage` entries for the duration of this call.
+        let msg_ptr = unsafe { *msg.add(i) };
+        if msg_ptr.is_null() {
+            return PAM_CONV_ERR;
+        }
+        let m = unsafe { &*msg_ptr };
+        let text = if m.msg.is_null() {
+            String::new()
+        } else {
+            // SAFETY: NUL-terminated C string, valid for the call's duration.
+            unsafe { core::ffi::CStr::from_ptr(m.msg) }
+                .to_string_lossy()
+                .into_owned()
+        };
+        let style = match m.msg_style {
+            s if s == PAM_PROMPT_ECHO_OFF => MsgStyle::PromptEchoOff,
+            s if s == PAM_PROMPT_ECHO_ON => MsgStyle::PromptEchoOn,
+            s if s == PAM_ERROR_MSG => MsgStyle::ErrorMsg,
+            s if s == PAM_TEXT_INFO => MsgStyle::TextInfo,
+            _ => return PAM_CONV_ERR,
+        };
+        messages.push(Message { style, text });
+    }
+
+    let responses = match converser.converse(&messages) {
+        Ok(r) if r.len() == count => r,
+        Ok(_) => return PAM_CONV_ERR, // contract violation: wrong response count
+        Err(_) => return PAM_CONV_ERR,
+    };
+
+    // SAFETY: allocate with libc::malloc, not Rust's global allocator --
+    // the caller (elevate-pam's own conv_echo_off/conv_echo_on, or any
+    // other PAM-conformant caller) frees this array and each .resp string
+    // with libc::free per the PAM conversation contract.
+    let resp_array = unsafe {
+        libc::malloc(count * core::mem::size_of::<CPamResponse>()) as *mut CPamResponse
+    };
+    if resp_array.is_null() {
+        return PAM_BUF_ERR;
+    }
+    for (i, r) in responses.into_iter().enumerate() {
+        let dup = match std::ffi::CString::new(r.text) {
+            // SAFETY: strdup mallocs its own copy; caller frees with libc::free.
+            Ok(c_text) => unsafe { libc::strdup(c_text.as_ptr()) },
+            // NUL byte in response text -- essentially unreachable for real
+            // password/text input, but fail the transaction rather than
+            // truncate silently. Previously-allocated entries in
+            // resp_array are leaked on this rare path rather than
+            // unwound, to keep this trampoline simple.
+            Err(_) => {
+                unsafe { libc::free(resp_array as *mut core::ffi::c_void) };
+                return PAM_CONV_ERR;
+            }
+        };
+        unsafe {
+            (*resp_array.add(i)).resp = dup;
+            (*resp_array.add(i)).resp_retcode = r.retcode;
+        }
+    }
+
+    unsafe { *resp = resp_array };
+    PAM_SUCCESS
 }
