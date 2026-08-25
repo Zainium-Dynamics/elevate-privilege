@@ -67,6 +67,8 @@ jobs:
           [ "$(id -u)" -ne 0 ] || { echo "runner is root — tests assume non-root, would silently bypass permission checks"; exit 1; }
       - name: tzdata (test_tzinfo needs a real, root-owned /usr/share/zoneinfo)
         run: sudo DEBIAN_FRONTEND=noninteractive TZ=UTC apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive TZ=UTC apt-get install -y -qq --reinstall tzdata
+      - name: fix /usr/share/zoneinfo perms (this runner image ships it 777)
+        run: sudo chmod 755 /usr/share/zoneinfo
       - run: ls -ld /usr/share/zoneinfo /usr/share/zoneinfo/Europe/Amsterdam
       - run: cargo test --workspace --lib
       - run: cargo test --workspace --tests
