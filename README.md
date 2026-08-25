@@ -29,24 +29,6 @@ elevate-privilege/
 | [`elevate-crypto`](elevate-crypto/README.md) | Password hashing, file-integrity hashing, signatures |
 | [`elevate-pam`](elevate-pam/README.md) | PAM authentication/session engine |
 
-## Building
-
-Three build paths, depending on target:
-
-| Path | Command | Produces | Notes |
-|---|---|---|---|
-| Host glibc (default) | `./scripts/build-all.sh` or `cargo build --release` | Everything, incl. all PAM `.so` modules | No `--target` needed |
-| Generic musl-static | `./scripts/build-zainium.sh static` | Static `elevate`/`elev`/`vielev` + `elevate-umbra` | Stable Rust, rustup's own musl target — see [`elevate/MUSL_BUILD_README.md`](elevate/MUSL_BUILD_README.md) |
-| Zainium OS target | `./scripts/build-zainium.sh dynamic` | PAM `.so` modules + `libelevate_pam.so` + `libelevate_crypto.so`, natively musl-linked | Needs the Zainium crosstool-NG toolchain + a pinned nightly (`-Z build-std`) — see [`targets/x86_64-zainium-linux-musl.json`](targets/x86_64-zainium-linux-musl.json) |
-
-Rustup's stock `x86_64-unknown-linux-musl` target can't produce `cdylib`
-outputs at all — its target spec's `crt-static-default: true` gates
-crate-type support regardless of the resolved `crt-static` flag. That's
-why the PAM modules need the real Zainium target instead of the generic
-musl one. The generic musl target is still correct for fully static
-binaries, since a `crt-static` build embeds its own libc and needs
-nothing from any external toolchain.
-
 `elevate-pam` also builds standalone, outside this workspace — see
 [`elevate-pam/README.md`](elevate-pam/README.md#standalone-builds-any-distro-outside-the-elevate-privilege-monorepo).
 
