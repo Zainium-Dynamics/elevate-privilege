@@ -1,9 +1,6 @@
 # elevate — single monorepo configuration (TOML only, no JSON)
 
 # SPDX-License-Identifier: MIT OR Apache-2.0
-# Copyright (c) 2026 Zainium Dynamics
-# Author: alizain <alizain@zainiumdynamics.tech>
-# Website: https://zainiumdynamics.tech
 #
 # Zainium paths: immutable base under /overlayer/syshub (no /usr, no bare
 # /bin /sbin /lib /etc at root) — see [paths] below.

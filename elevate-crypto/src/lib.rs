@@ -1,6 +1,6 @@
 //! # elevate-crypto
 //!
-//! **Pure Rust** cryptography for the elevate monorepo (Zainium Dynamics).
+//! **Pure Rust** cryptography for the elevate monorepo.
 //! **No C OpenSSL / libcrypto** — everything is implemented in Rust.
 //!
 //! | Purpose | Algorithm |
@@ -10,12 +10,7 @@
 //! | Password | Argon2id / bcrypt / legacy shadow (`$5$`/`$6$`) |
 //! | RNG | OS CSPRNG via `getrandom` |
 //!
-//! ```text
 //! SPDX-License-Identifier: MIT OR Apache-2.0
-//! Copyright (c) 2026 Zainium Dynamics
-//! Author: alizain <alizain@zainiumdynamics.tech>
-//! Website: https://zainiumdynamics.tech
-//! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]

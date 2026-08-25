@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# =============================================================================
 # Cross-build elevate-privilege for Zainium OS's real musl target.
-# =============================================================================
 # Two variants, both musl, no glibc:
 #
 #   dynamic (default target) -- the real x86_64-zainium-linux-musl target,
@@ -36,7 +34,6 @@
 #                          drive path -- override for CI / other machines)
 #   ZAINIUM_NIGHTLY        pinned nightly toolchain (default: nightly-2026-05-24)
 #   PROFILE                cargo profile (default: release)
-# =============================================================================
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -69,9 +66,7 @@ mapfile -t PAM_MODULE_CRATES < <(
     | tr -d '"' | sed 's#.*/##' | sort -u
 )
 
-# =============================================================================
 # dynamic
-# =============================================================================
 # Body is `( ... )` (subshell), not `{ ... }` -- the PATH export below must
 # NOT leak into build_static(), which needs the host's own cc/ld. Bash
 # functions otherwise share the caller's shell environment (no subshell),
@@ -134,9 +129,7 @@ build_dynamic() (
   log "dynamic artifacts staged under $DIST/overlayer/syshub/lib{,/security}"
 )
 
-# =============================================================================
 # static
-# =============================================================================
 build_static() {
   log "static: x86_64-unknown-linux-musl (crt-static, stable)"
   rustup target add x86_64-unknown-linux-musl >/dev/null 2>&1 || true

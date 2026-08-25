@@ -3,7 +3,7 @@
 # Cargo.toml for why. Keep in sync with the workspace root Cargo.toml's
 # [workspace.package].
 name = "elevate-paths"
-description = "Shared install-path configuration for the elevate monorepo, driven by elevate_privilege.toml (Zainium Dynamics)"
+description = "Shared install-path configuration for the elevate monorepo, driven by elevate_privilege.toml"
 version = "1.0.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"

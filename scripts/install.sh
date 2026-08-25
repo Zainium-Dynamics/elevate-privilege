@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# =============================================================================
 # elevate monorepo installer (Zainium — no /usr)
-# =============================================================================
 # Installs binaries, libraries, ALL PAM modules, AND the full /etc tree.
 #
 # Usage:
@@ -23,7 +21,6 @@
 #     policy installed once. New OS users do not get their own elevate.toml.
 #   - Existing elevate.toml is preserved unless --force-policy is set.
 #   - elevate.toml uses classic sudoers grammar (not real TOML tables).
-# =============================================================================
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

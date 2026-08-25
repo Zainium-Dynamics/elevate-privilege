@@ -4,7 +4,6 @@
 #   single config: /home/alizain/elevate/elevate.toml
 #
 # SPDX-License-Identifier: MIT OR Apache-2.0
-# Copyright (c) 2026 Zainium Dynamics
 
 [package]
 name = "elevate-pam-tree"

@@ -1,4 +1,4 @@
-# elevate monorepo — single workspace (Zainium Dynamics)
+# elevate monorepo — single workspace
 # Layout:
 #   elevate-crypto/   pure Rust: Blake3 + Ed25519 + password-crypt (no C OpenSSL)
 #   elevate-pam/      libelevate_pam + modules + CLI
@@ -7,9 +7,6 @@
 # One config file: elevate.toml (shared / static / standalone, paths, crypto)
 #
 # SPDX-License-Identifier: MIT OR Apache-2.0
-# Copyright (c) 2026 Zainium Dynamics
-# Author: alizain <alizain@zainiumdynamics.tech>
-# Website: https://zainiumdynamics.tech
 
 [workspace]
 resolver = "2"

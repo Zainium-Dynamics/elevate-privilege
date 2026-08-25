@@ -3,9 +3,6 @@
 //! Authentication framework for the **elevate** tool family
 //! (`elevate` / `elev` / `viselev`). Ships as `libelevate_pam.so`.
 //!
-//! Copyright (c) 2026 Zainium Dynamics  
-//! Author: alizain \<alizain@zainiumdynamics.tech\>  
-//! Website: <https://zainiumdynamics.tech>  
 //! License: **MIT OR Apache-2.0** (`SPDX-License-Identifier: MIT OR Apache-2.0`).
 //!
 //! ## Design

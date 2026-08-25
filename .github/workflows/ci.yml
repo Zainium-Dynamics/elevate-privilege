@@ -1,21 +1,3 @@
-# =============================================================================
-# elevate-privilege — GitHub Actions CI/CD
-# =============================================================================
-# check/clippy/fmt/test run on every push+PR. The package-* jobs build real
-# release artifacts as plain tarballs (no manifest.toml/zex packaging —
-# that's Zainium's internal syshub package convention, out of scope for a
-# simple public GitHub release) and upload them as workflow artifacts; on a
-# vX.Y.Z tag push, `release` collects those tarballs and publishes a GitHub
-# Release.
-#
-# `package-musl-shared` needs a self-hosted runner labeled `zainium-toolchain`
-# with the real x86_64-zainium-linux-musl crosstool-NG toolchain available at
-# $ZAINIUM_TOOLCHAIN_BIN (repo variable/secret) — not yet registered. Until
-# it is, this job just sits queued; `timeout-minutes` bounds that instead of
-# hanging a run indefinitely, `continue-on-error: true` plus keeping it OUT
-# of `release`'s hard `needs:` means nothing else blocks on it (its tarball
-# is picked up best-effort in the release job instead).
-# =============================================================================
 name: CI
 
 on:
@@ -30,9 +12,6 @@ env:
   RUST_BACKTRACE: "1"
 
 jobs:
-  # ===========================================================================
-  # check
-  # ===========================================================================
   check:
     name: check
     runs-on: ubuntu-latest
@@ -43,10 +22,6 @@ jobs:
       - run: cargo check --workspace
       - run: cargo check -p elevate-pam --no-default-features --features std
 
-  # elevate-pam must stay buildable outside this monorepo (see
-  # elevate-pam/README.md) — exercised via --manifest-path so a
-  # workspace-only path-dependency regression fails CI instead of surfacing
-  # only when a downstream distro tries to package it.
   check-standalone-elevate-pam:
     name: check (standalone elevate-pam)
     runs-on: ubuntu-latest
@@ -78,14 +53,6 @@ jobs:
           components: rustfmt
       - run: cargo fmt --all -- --check
 
-  # ===========================================================================
-  # test
-  # ===========================================================================
-  # Several tests are real privilege/permission security checks (Zero-Trust
-  # Core Protector, secure_open traversal, non-root-only sudoers-equivalent
-  # behavior) that assume a non-root caller, same as production use. GitHub's
-  # ubuntu-latest runners already execute as the non-root `runner` user by
-  # default — verified via `id` below instead of assumed.
   test:
     name: test
     runs-on: ubuntu-latest
@@ -104,16 +71,6 @@ jobs:
       - run: cargo test --workspace --lib
       - run: cargo test --workspace --tests
 
-  # ===========================================================================
-  # package — plain tarballs, uploaded as workflow artifacts. Real
-  # manifest.toml/zex packaging (blake3/ed25519 signing, _syshub install
-  # map) stays Zainium's own internal build step, not part of this release.
-  # ===========================================================================
-
-  # Generic musl-static elevate/elev/vielev + elevate-umbra binaries
-  # (rustup's own self-contained musl, no external toolchain needed — see
-  # elevate/MUSL_BUILD_README.md). Distinct from package-musl-shared below,
-  # which targets Zainium OS's own musl specifically.
   package-static:
     name: package (musl-static)
     runs-on: ubuntu-latest
@@ -136,9 +93,6 @@ jobs:
           path: elevate-privilege-musl-static.tar.gz
           retention-days: 30
 
-  # Self-contained libelevate_pam (all builtin modules compiled in, no
-  # dlopen) — a Linux-PAM replacement any distro (glibc or musl) can use,
-  # not Zainium-specific. Built for the runner's host default target.
   package-pam-standalone:
     name: package (pam-standalone)
     runs-on: ubuntu-latest
@@ -163,10 +117,6 @@ jobs:
           path: elevate-pam-standalone.tar.gz
           retention-days: 30
 
-  # libelevate_crypto on its own — separate from pam-standalone, which
-  # bundles crypto compiled *into* libelevate_pam, not as a linkable library
-  # in its own right. Pure Rust, host default target — no special toolchain
-  # needed.
   package-elevate-crypto-standalone:
     name: package (elevate-crypto-standalone)
     runs-on: ubuntu-latest
@@ -188,9 +138,6 @@ jobs:
           path: elevate-crypto-standalone.tar.gz
           retention-days: 30
 
-  # packaging/etc/ (elevators policy, elevate-pam service configs, security
-  # defaults) — needed alongside either binary package on a real install,
-  # never actually shipped as a release asset before now.
   package-config:
     name: package (config)
     runs-on: ubuntu-latest
@@ -204,13 +151,6 @@ jobs:
           path: elevate-privilege-config.tar.gz
           retention-days: 30
 
-  # Real Zainium OS target: PAM .so modules + libelevate_pam.so +
-  # libelevate_crypto.so built with the crosstool-NG toolchain via nightly
-  # `-Z build-std` (see scripts/build-zainium.sh and
-  # targets/x86_64-zainium-linux-musl.json). Needs a self-hosted runner
-  # labeled `zainium-toolchain` with $ZAINIUM_TOOLCHAIN_BIN set — not yet
-  # registered, so this stays continue-on-error and out of release's hard
-  # `needs:` until it is (see top-of-file comment).
   package-musl-shared:
     name: package (musl-shared, Zainium target)
     runs-on: [self-hosted, zainium-toolchain]
@@ -232,16 +172,6 @@ jobs:
           path: elevate-privilege-musl-shared.tar.gz
           retention-days: 30
 
-  # ===========================================================================
-  # release — only on vX.Y.Z tags, publishes a GitHub Release with all
-  # tarballs + sha256 sums as assets.
-  #
-  # package-musl-shared deliberately NOT in `needs:` — see top-of-file
-  # comment: while no self-hosted zainium-toolchain runner is registered,
-  # that job would never get picked up, and a hard `needs:` would hang this
-  # job (and the whole release) forever waiting for it. Its artifact is
-  # downloaded best-effort below instead.
-  # ===========================================================================
   release:
     name: release
     runs-on: ubuntu-latest

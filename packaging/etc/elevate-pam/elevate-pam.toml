@@ -1,8 +1,5 @@
-# =============================================================================
 # elevate-pam — system configuration (installs to /overlayer/syshub/etc/elevate-pam/)
-# =============================================================================
 # SPDX-License-Identifier: MIT OR Apache-2.0
-# Copyright (c) 2026 Zainium Dynamics
 #
 # Zainium paths: immutable base under /overlayer/syshub (no /usr, no bare
 # /bin /sbin /lib /etc at root) — mirrors elevate_privilege.toml's [paths].
