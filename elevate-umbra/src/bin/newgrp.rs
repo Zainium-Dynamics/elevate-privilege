@@ -42,7 +42,8 @@ fn main() {
     audit::closelog();
 
     // Spawn default user shell
-    let shell = env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
+    let shell =
+        env::var("SHELL").unwrap_or_else(|_| format!("{}/bin/sh", elevate_paths::get().prefix));
     let c_shell = CString::new(shell.clone()).unwrap();
 
     let shell_arg = if shell.contains('/') {

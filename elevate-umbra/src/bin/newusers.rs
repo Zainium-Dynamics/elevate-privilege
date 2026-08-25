@@ -99,7 +99,7 @@ fn main() {
             home.to_string()
         };
         let user_shell = if shell.is_empty() {
-            "/bin/sh".to_string()
+            format!("{}/bin/sh", elevate_paths::get().prefix)
         } else {
             shell.to_string()
         };

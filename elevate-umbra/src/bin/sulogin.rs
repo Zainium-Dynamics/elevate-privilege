@@ -43,7 +43,8 @@ fn main() {
             audit::audit_crit("sulogin", "emergency root shell granted");
             audit::closelog();
 
-            let shell = std::env::var("SUSHELL").unwrap_or_else(|_| "/bin/sh".to_string());
+            let shell = std::env::var("SUSHELL")
+                .unwrap_or_else(|_| format!("{}/bin/sh", elevate_paths::get().prefix));
             let c_shell = CString::new(shell.clone()).unwrap();
             let c_arg = CString::new("-sh").unwrap();
             let args = [c_arg.as_ptr(), std::ptr::null()];

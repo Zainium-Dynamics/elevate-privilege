@@ -6,7 +6,7 @@
 #   ./scripts/install.sh                          # live system: /bin /lib /etc
 #   ./scripts/install.sh --prefix /path/to/root   # install under a prefix
 #   DESTROOT=/path/to/overlayer/syshub ./scripts/install.sh
-#   ./scripts/install.sh --etc-only               # only packaging/etc → $DESTROOT/etc
+#   ./scripts/install.sh --etc-only               # only etc/ → $DESTROOT/etc
 #   ./scripts/install.sh --force-policy           # overwrite existing elevate.toml
 #   ./scripts/install.sh --skip-build             # use already-built target/release
 #   ./scripts/install.sh --no-verify              # skip the post-install check
@@ -89,7 +89,7 @@ SBINDIR="${SBINDIR:-${DESTROOT}/sbin}"
 LIBDIR="${LIBDIR:-${DESTROOT}/lib}"
 MODDIR="${MODDIR:-${LIBDIR}/security}"
 ETCDIR="${ETCDIR:-${DESTROOT}/etc}"
-PKG_ETC="${ROOT}/packaging/etc"
+PKG_ETC="${ROOT}/etc"
 
 rel="${ROOT}/target/release"
 
@@ -220,11 +220,11 @@ fi
 # --- /etc tree ---------------------------------------------------------------
 if [[ "$INSTALL_ETC" -eq 1 ]]; then
   if [[ ! -d "$PKG_ETC" ]]; then
-    echo "error: packaging tree missing: $PKG_ETC" >&2
+    echo "error: etc tree missing: $PKG_ETC" >&2
     exit 1
   fi
 
-  log "installing /etc layout from packaging/etc → $ETCDIR"
+  log "installing /etc layout from etc/ → $ETCDIR"
 
   # elevate-pam main config + services (always refresh; safe to replace)
   install_file 644 "$PKG_ETC/elevate-pam/elevate-pam.toml" \

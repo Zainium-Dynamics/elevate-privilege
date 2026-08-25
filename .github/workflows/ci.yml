@@ -69,148 +69,69 @@ jobs:
         run: sudo DEBIAN_FRONTEND=noninteractive TZ=UTC apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive TZ=UTC apt-get install -y -qq --reinstall tzdata
       - name: fix /usr/share/zoneinfo perms (this runner image ships it 777)
         run: sudo chmod 755 /usr/share/zoneinfo
-      - run: ls -ld /usr/share/zoneinfo /usr/share/zoneinfo/Europe/Amsterdam
       - run: cargo test --workspace --lib
       - run: cargo test --workspace --tests
-
-  package-static:
-    name: package (musl-static)
-    runs-on: ubuntu-latest
-    needs: [check, check-standalone-elevate-pam, clippy, fmt, test]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-unknown-linux-musl
-      - uses: Swatinem/rust-cache@v2
-      - run: ./scripts/build-zainium.sh static
-      - run: file dist/zainium/overlayer/syshub/bin/elevate | grep -q "static-pie linked"
-      - name: tar
-        run: |
-          cd dist/zainium/overlayer/syshub
-          tar -czf "${GITHUB_WORKSPACE}/elevate-privilege-musl-static.tar.gz" bin sbin
-      - uses: actions/upload-artifact@v4
-        with:
-          name: elevate-privilege-musl-static
-          path: elevate-privilege-musl-static.tar.gz
-          retention-days: 30
-
-  package-pam-standalone:
-    name: package (pam-standalone)
-    runs-on: ubuntu-latest
-    needs: [check, check-standalone-elevate-pam, clippy, fmt, test]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - run: |
-          cargo build --release --manifest-path elevate-pam/pam/Cargo.toml \
-            --no-default-features --features standalone,elevate_crypto
-      - name: tar
-        run: |
-          mkdir -p stage/lib stage/include/security
-          cp target/release/libelevate_pam.so stage/lib/libelevate_pam.so.0
-          [ -f target/release/libelevate_pam.a ] && cp target/release/libelevate_pam.a stage/lib/ || true
-          cp -a elevate-pam/include/security/. stage/include/security/
-          tar -czf elevate-pam-standalone.tar.gz -C stage .
-      - uses: actions/upload-artifact@v4
-        with:
-          name: elevate-pam-standalone
-          path: elevate-pam-standalone.tar.gz
-          retention-days: 30
-
-  package-elevate-crypto-standalone:
-    name: package (elevate-crypto-standalone)
-    runs-on: ubuntu-latest
-    needs: [check, check-standalone-elevate-pam, clippy, fmt, test]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo build --release --manifest-path elevate-crypto/Cargo.toml
-      - name: tar
-        run: |
-          mkdir -p stage/lib
-          cp target/release/libelevate_crypto.so stage/lib/
-          [ -f target/release/libelevate_crypto.a ] && cp target/release/libelevate_crypto.a stage/lib/ || true
-          tar -czf elevate-crypto-standalone.tar.gz -C stage .
-      - uses: actions/upload-artifact@v4
-        with:
-          name: elevate-crypto-standalone
-          path: elevate-crypto-standalone.tar.gz
-          retention-days: 30
-
-  package-config:
-    name: package (config)
-    runs-on: ubuntu-latest
-    needs: [check, check-standalone-elevate-pam, clippy, fmt, test]
-    steps:
-      - uses: actions/checkout@v4
-      - run: tar -czf elevate-privilege-config.tar.gz -C packaging etc
-      - uses: actions/upload-artifact@v4
-        with:
-          name: elevate-privilege-config
-          path: elevate-privilege-config.tar.gz
-          retention-days: 30
-
-  package-musl-shared:
-    name: package (musl-shared, Zainium target)
-    runs-on: [self-hosted, zainium-toolchain]
-    needs: [check, check-standalone-elevate-pam, clippy, fmt, test]
-    continue-on-error: true
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - run: rustup toolchain install nightly-2026-05-24 --component rust-src
-      - run: ./scripts/build-zainium.sh dynamic
-      - run: file dist/zainium/overlayer/syshub/lib/security/pam_unix.so | grep -q "dynamically linked"
-      - name: tar
-        run: |
-          cd dist/zainium/overlayer/syshub
-          tar -czf "${GITHUB_WORKSPACE}/elevate-privilege-musl-shared.tar.gz" lib
-      - uses: actions/upload-artifact@v4
-        with:
-          name: elevate-privilege-musl-shared
-          path: elevate-privilege-musl-shared.tar.gz
-          retention-days: 30
 
   release:
     name: release
     runs-on: ubuntu-latest
-    needs:
-      - test
-      - package-static
-      - package-pam-standalone
-      - package-elevate-crypto-standalone
-      - package-config
+    needs: [check, check-standalone-elevate-pam, clippy, fmt, test]
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: assets
-          merge-multiple: true
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
 
-      - name: download musl-shared package (optional — may not exist yet)
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          name: elevate-privilege-musl-shared
-          path: assets
+      - name: build pam-standalone
+        run: |
+          cargo build --release --manifest-path elevate-pam/pam/Cargo.toml \
+            --no-default-features --features standalone,elevate_crypto
+          mkdir -p assets/pam-standalone/lib assets/pam-standalone/include/security
+          cp target/release/libelevate_pam.so assets/pam-standalone/lib/libelevate_pam.so.0
+          [ -f target/release/libelevate_pam.a ] && cp target/release/libelevate_pam.a assets/pam-standalone/lib/ || true
+          cp -a elevate-pam/include/security/. assets/pam-standalone/include/security/
+          tar -czf assets/elevate-pam-standalone.tar.gz -C assets/pam-standalone .
+
+      - name: build elevate-crypto-standalone
+        run: |
+          cargo build --release --manifest-path elevate-crypto/Cargo.toml
+          mkdir -p assets/crypto-standalone/lib
+          cp target/release/libelevate_crypto.so assets/crypto-standalone/lib/
+          [ -f target/release/libelevate_crypto.a ] && cp target/release/libelevate_crypto.a assets/crypto-standalone/lib/ || true
+          tar -czf assets/elevate-crypto-standalone.tar.gz -C assets/crypto-standalone .
+
+      - name: package config
+        run: tar -czf assets/elevate-privilege-config.tar.gz etc
 
       - name: checksums
         run: |
           cd assets
+          rm -rf pam-standalone crypto-standalone
           ls -la
           sha256sum *.tar.gz > SHA256SUMS
 
-      - name: publish GitHub Release
+      - name: publish releases
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -eu
           TAG="${GITHUB_REF#refs/tags/}"
-          gh release create "$TAG" assets/*.tar.gz assets/SHA256SUMS \
+
+          gh release create "$TAG" \
+            assets/elevate-privilege-config.tar.gz assets/SHA256SUMS \
             --title "elevate-privilege ${TAG}" \
             --notes "elevate-privilege ${TAG} — memory-safe PAM + sudo + shadow replacement for Zainium OS"
+
+          gh release create "elevate-pam-standalone-${TAG}" \
+            assets/elevate-pam-standalone.tar.gz \
+            --target "$GITHUB_SHA" \
+            --title "elevate-pam standalone ${TAG}" \
+            --notes "Self-contained libelevate_pam (all builtin modules compiled in, no dlopen) — any distro, glibc or musl, not Zainium-specific."
+
+          gh release create "elevate-crypto-standalone-${TAG}" \
+            assets/elevate-crypto-standalone.tar.gz \
+            --target "$GITHUB_SHA" \
+            --title "elevate-crypto standalone ${TAG}" \
+            --notes "libelevate_crypto on its own — Argon2id/Blake3/Ed25519, pure Rust, no C OpenSSL."
