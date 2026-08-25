@@ -62,21 +62,21 @@ default-members = [
 ]
 
 [workspace.package]
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 rust-version = "1.96"
 license = "MIT OR Apache-2.0"
 authors = ["alizain <alizain@zainiumdynamics.tech>"]
 homepage = "https://zainiumdynamics.tech"
-repository = "https://gitlab.com/zainium-dynamics/elevate-privilege"
+repository = "https://github.com/Zainium-Dynamics/elevate-privilege"
 categories = ["authentication", "cryptography", "os::linux-apis"]
 keywords = ["elevate", "crypto", "pam", "ed25519", "blake3"]
 
 [workspace.dependencies]
-elevate-paths = { path = "elevate-paths", version = "1.0.0" }
-elevate-crypto = { path = "elevate-crypto", version = "1.0.0" }
-elevate-pam = { path = "elevate-pam/pam", version = "1.0.0" }
-elevate-umbra = { path = "elevate-umbra", version = "1.0.0" }
+elevate-paths = { path = "elevate-paths", version = "1.0.1" }
+elevate-crypto = { path = "elevate-crypto", version = "1.0.1" }
+elevate-pam = { path = "elevate-pam/pam", version = "1.0.1" }
+elevate-umbra = { path = "elevate-umbra", version = "1.0.1" }
 libc = "0.2"
 glob = "0.3"
 serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }

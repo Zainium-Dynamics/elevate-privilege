@@ -1,7 +1,7 @@
 [package]
 name = "elevate"
 description = "elevate / elev / viselev — memory-safe sudo/su for Zainium (elevate monorepo)"
-version = "1.0.0"
+version = "1.0.1"
 license.workspace = true
 edition = "2024"
 repository.workspace = true

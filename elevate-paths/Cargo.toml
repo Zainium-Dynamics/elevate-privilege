@@ -4,10 +4,10 @@
 # [workspace.package].
 name = "elevate-paths"
 description = "Shared install-path configuration for the elevate monorepo, driven by elevate_privilege.toml"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-repository = "https://gitlab.com/zainium-dynamics/elevate-privilege"
+repository = "https://github.com/Zainium-Dynamics/elevate-privilege"
 homepage = "https://zainiumdynamics.tech"
 authors = ["alizain <alizain@zainiumdynamics.tech>"]
 publish = false

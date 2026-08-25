@@ -4,13 +4,13 @@
 # of elevate-pam, which itself needs to build outside the monorepo. Keep in
 # sync with the workspace root Cargo.toml's [workspace.package].
 name = "elevate-crypto"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 rust-version = "1.96"
 license = "MIT OR Apache-2.0"
 authors = ["alizain <alizain@zainiumdynamics.tech>"]
 homepage = "https://zainiumdynamics.tech"
-repository = "https://gitlab.com/zainium-dynamics/elevate-privilege"
+repository = "https://github.com/Zainium-Dynamics/elevate-privilege"
 description = "elevate-crypto — pure Rust: Blake3, Ed25519, password-crypt (no C OpenSSL)"
 readme = "README.md"
 categories = ["authentication", "cryptography", "os::linux-apis"]

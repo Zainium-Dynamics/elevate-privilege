@@ -7,7 +7,7 @@
 
 [package]
 name = "elevate-pam-tree"
-version = "0.0.0"
+version = "1.0.1"
 edition = "2021"
 publish = false
 description = "Placeholder so this directory is not a nested workspace — build from monorepo root"

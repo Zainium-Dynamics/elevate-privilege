@@ -252,7 +252,7 @@ dependencies = [
 
 [[package]]
 name = "elevate"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-paths",
  "glob",
@@ -261,7 +261,7 @@ dependencies = [
 
 [[package]]
 name = "elevate-crypto"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "argon2",
  "bcrypt",
@@ -279,7 +279,7 @@ dependencies = [
 
 [[package]]
 name = "elevate-pam"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "bitflags",
  "elevate-crypto",
@@ -296,7 +296,7 @@ dependencies = [
 
 [[package]]
 name = "elevate-pam-cli"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -304,7 +304,7 @@ dependencies = [
 
 [[package]]
 name = "elevate-paths"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "serde",
  "toml",
@@ -312,7 +312,7 @@ dependencies = [
 
 [[package]]
 name = "elevate-umbra"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-crypto",
  "elevate-paths",
@@ -462,7 +462,7 @@ checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
 name = "pam-access"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -470,7 +470,7 @@ dependencies = [
 
 [[package]]
 name = "pam-canonicalize-user"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -478,7 +478,7 @@ dependencies = [
 
 [[package]]
 name = "pam-cap"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -486,7 +486,7 @@ dependencies = [
 
 [[package]]
 name = "pam-deny"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -494,7 +494,7 @@ dependencies = [
 
 [[package]]
 name = "pam-env"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -502,7 +502,7 @@ dependencies = [
 
 [[package]]
 name = "pam-faillock"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -510,7 +510,7 @@ dependencies = [
 
 [[package]]
 name = "pam-filter"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -518,7 +518,7 @@ dependencies = [
 
 [[package]]
 name = "pam-ftp"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -526,7 +526,7 @@ dependencies = [
 
 [[package]]
 name = "pam-group"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -534,7 +534,7 @@ dependencies = [
 
 [[package]]
 name = "pam-keyinit"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -542,7 +542,7 @@ dependencies = [
 
 [[package]]
 name = "pam-limits"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -550,7 +550,7 @@ dependencies = [
 
 [[package]]
 name = "pam-listfile"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -558,7 +558,7 @@ dependencies = [
 
 [[package]]
 name = "pam-loginuid"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -566,7 +566,7 @@ dependencies = [
 
 [[package]]
 name = "pam-mkhomedir"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -574,7 +574,7 @@ dependencies = [
 
 [[package]]
 name = "pam-namespace"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -582,7 +582,7 @@ dependencies = [
 
 [[package]]
 name = "pam-nologin"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -590,7 +590,7 @@ dependencies = [
 
 [[package]]
 name = "pam-permit"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -598,7 +598,7 @@ dependencies = [
 
 [[package]]
 name = "pam-pwhistory"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -606,7 +606,7 @@ dependencies = [
 
 [[package]]
 name = "pam-rootok"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -614,7 +614,7 @@ dependencies = [
 
 [[package]]
 name = "pam-securetty"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -622,7 +622,7 @@ dependencies = [
 
 [[package]]
 name = "pam-stress"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -630,7 +630,7 @@ dependencies = [
 
 [[package]]
 name = "pam-tally2"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -638,7 +638,7 @@ dependencies = [
 
 [[package]]
 name = "pam-time"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -646,7 +646,7 @@ dependencies = [
 
 [[package]]
 name = "pam-timestamp"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "elevate-paths",
@@ -655,7 +655,7 @@ dependencies = [
 
 [[package]]
 name = "pam-unix"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -663,7 +663,7 @@ dependencies = [
 
 [[package]]
 name = "pam-wheel"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -671,7 +671,7 @@ dependencies = [
 
 [[package]]
 name = "pam-xauth"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "elevate-pam",
  "libc",
@@ -959,7 +959,7 @@ checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
 
 [[package]]
 name = "unix_chkpwd"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "libc",
 ]
