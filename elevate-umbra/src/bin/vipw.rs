@@ -35,7 +35,7 @@ fn main() {
 
     let editor = env::var("EDITOR")
         .or_else(|_| env::var("VISUAL"))
-        .unwrap_or_else(|_| "/bin/vi".to_string());
+        .unwrap_or_else(|_| format!("{}/bin/vi", elevate_paths::get().prefix));
 
     let status = Command::new(&editor).arg(&target_path).status();
 
