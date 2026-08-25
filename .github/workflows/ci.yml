@@ -119,19 +119,31 @@ jobs:
           set -eu
           TAG="${GITHUB_REF#refs/tags/}"
 
-          gh release create "$TAG" \
-            assets/elevate-privilege-config.tar.gz assets/SHA256SUMS \
-            --title "elevate-privilege ${TAG}" \
-            --notes "elevate-privilege ${TAG} — memory-safe PAM + sudo + shadow replacement for Zainium OS"
+          # Idempotent: a tag/release may already exist (e.g. created via the
+          # GitHub UI before this workflow ran) — upload+overwrite assets into
+          # it instead of failing on "release already exists".
+          publish() {
+            local release_tag="$1" title="$2" notes="$3"; shift 3
+            if gh release view "$release_tag" >/dev/null 2>&1; then
+              gh release upload "$release_tag" "$@" --clobber
+              gh release edit "$release_tag" --title "$title" --notes "$notes"
+            else
+              gh release create "$release_tag" "$@" \
+                --target "$GITHUB_SHA" --title "$title" --notes "$notes"
+            fi
+          }
 
-          gh release create "elevate-pam-standalone-${TAG}" \
-            assets/elevate-pam-standalone.tar.gz \
-            --target "$GITHUB_SHA" \
-            --title "elevate-pam standalone ${TAG}" \
-            --notes "Self-contained libelevate_pam (all builtin modules compiled in, no dlopen) — any distro, glibc or musl, not Zainium-specific."
+          publish "$TAG" \
+            "elevate-privilege ${TAG}" \
+            "elevate-privilege ${TAG} — memory-safe PAM + sudo + shadow replacement for Zainium OS" \
+            assets/elevate-privilege-config.tar.gz assets/SHA256SUMS
 
-          gh release create "elevate-crypto-standalone-${TAG}" \
-            assets/elevate-crypto-standalone.tar.gz \
-            --target "$GITHUB_SHA" \
-            --title "elevate-crypto standalone ${TAG}" \
-            --notes "libelevate_crypto on its own — Argon2id/Blake3/Ed25519, pure Rust, no C OpenSSL."
+          publish "elevate-pam-standalone-${TAG}" \
+            "elevate-pam standalone ${TAG}" \
+            "Self-contained libelevate_pam (all builtin modules compiled in, no dlopen) — any distro, glibc or musl, not Zainium-specific." \
+            assets/elevate-pam-standalone.tar.gz
+
+          publish "elevate-crypto-standalone-${TAG}" \
+            "elevate-crypto standalone ${TAG}" \
+            "libelevate_crypto on its own — Argon2id/Blake3/Ed25519, pure Rust, no C OpenSSL." \
+            assets/elevate-crypto-standalone.tar.gz
