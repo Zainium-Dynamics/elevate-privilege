@@ -3,9 +3,9 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::constants::{PAM_CONV_ERR, PAM_PROMPT_ECHO_OFF, PAM_PROMPT_ECHO_ON, PAM_SUCCESS};
 #[cfg(feature = "std")]
 use crate::constants::{PAM_BUF_ERR, PAM_ERROR_MSG, PAM_TEXT_INFO};
+use crate::constants::{PAM_CONV_ERR, PAM_PROMPT_ECHO_OFF, PAM_PROMPT_ECHO_ON, PAM_SUCCESS};
 use crate::error::{PamError, PamResult, PamStatus};
 use crate::types::{Message, MsgStyle, Response};
 
@@ -300,9 +300,8 @@ unsafe extern "C" fn converser_trampoline(
     // the caller (elevate-pam's own conv_echo_off/conv_echo_on, or any
     // other PAM-conformant caller) frees this array and each .resp string
     // with libc::free per the PAM conversation contract.
-    let resp_array = unsafe {
-        libc::malloc(count * core::mem::size_of::<CPamResponse>()) as *mut CPamResponse
-    };
+    let resp_array =
+        unsafe { libc::malloc(count * core::mem::size_of::<CPamResponse>()) as *mut CPamResponse };
     if resp_array.is_null() {
         return PAM_BUF_ERR;
     }

@@ -1,0 +1,282 @@
+# =============================================================================
+# elevate-privilege — GitHub Actions CI/CD
+# =============================================================================
+# check/clippy/fmt/test run on every push+PR. The package-* jobs build real
+# release artifacts as plain tarballs (no manifest.toml/zex packaging —
+# that's Zainium's internal syshub package convention, out of scope for a
+# simple public GitHub release) and upload them as workflow artifacts; on a
+# vX.Y.Z tag push, `release` collects those tarballs and publishes a GitHub
+# Release.
+#
+# `package-musl-shared` needs a self-hosted runner labeled `zainium-toolchain`
+# with the real x86_64-zainium-linux-musl crosstool-NG toolchain available at
+# $ZAINIUM_TOOLCHAIN_BIN (repo variable/secret) — not yet registered. Until
+# it is, this job just sits queued; `timeout-minutes` bounds that instead of
+# hanging a run indefinitely, `continue-on-error: true` plus keeping it OUT
+# of `release`'s hard `needs:` means nothing else blocks on it (its tarball
+# is picked up best-effort in the release job instead).
+# =============================================================================
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: "1"
+
+jobs:
+  # ===========================================================================
+  # check
+  # ===========================================================================
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check --workspace
+      - run: cargo check -p elevate-pam --no-default-features --features std
+
+  # elevate-pam must stay buildable outside this monorepo (see
+  # elevate-pam/README.md) — exercised via --manifest-path so a
+  # workspace-only path-dependency regression fails CI instead of surfacing
+  # only when a downstream distro tries to package it.
+  check-standalone-elevate-pam:
+    name: check (standalone elevate-pam)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --manifest-path elevate-pam/pam/Cargo.toml --release
+      - run: cargo build --manifest-path elevate-pam/pam-unix/Cargo.toml --release
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+
+  fmt:
+    name: fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  # ===========================================================================
+  # test
+  # ===========================================================================
+  # Several tests are real privilege/permission security checks (Zero-Trust
+  # Core Protector, secure_open traversal, non-root-only sudoers-equivalent
+  # behavior) that assume a non-root caller, same as production use. GitHub's
+  # ubuntu-latest runners already execute as the non-root `runner` user by
+  # default — verified via `id` below instead of assumed.
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: confirm non-root (tests assume this)
+        run: |
+          id
+          [ "$(id -u)" -ne 0 ] || { echo "runner is root — tests assume non-root, would silently bypass permission checks"; exit 1; }
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq tzdata
+      - run: cargo test --workspace --lib
+      - run: cargo test --workspace --tests
+
+  # ===========================================================================
+  # package — plain tarballs, uploaded as workflow artifacts. Real
+  # manifest.toml/zex packaging (blake3/ed25519 signing, _syshub install
+  # map) stays Zainium's own internal build step, not part of this release.
+  # ===========================================================================
+
+  # Generic musl-static elevate/elev/vielev + elevate-umbra binaries
+  # (rustup's own self-contained musl, no external toolchain needed — see
+  # elevate/MUSL_BUILD_README.md). Distinct from package-musl-shared below,
+  # which targets Zainium OS's own musl specifically.
+  package-static:
+    name: package (musl-static)
+    runs-on: ubuntu-latest
+    needs: [check, check-standalone-elevate-pam, clippy, fmt, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
+      - uses: Swatinem/rust-cache@v2
+      - run: ./scripts/build-zainium.sh static
+      - run: file dist/zainium/overlayer/syshub/bin/elevate | grep -q "static-pie linked"
+      - name: tar
+        run: |
+          cd dist/zainium/overlayer/syshub
+          tar -czf "${GITHUB_WORKSPACE}/elevate-privilege-musl-static.tar.gz" bin sbin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elevate-privilege-musl-static
+          path: elevate-privilege-musl-static.tar.gz
+          retention-days: 30
+
+  # Self-contained libelevate_pam (all builtin modules compiled in, no
+  # dlopen) — a Linux-PAM replacement any distro (glibc or musl) can use,
+  # not Zainium-specific. Built for the runner's host default target.
+  package-pam-standalone:
+    name: package (pam-standalone)
+    runs-on: ubuntu-latest
+    needs: [check, check-standalone-elevate-pam, clippy, fmt, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: |
+          cargo build --release --manifest-path elevate-pam/pam/Cargo.toml \
+            --no-default-features --features standalone,elevate_crypto
+      - name: tar
+        run: |
+          mkdir -p stage/lib stage/include/security
+          cp target/release/libelevate_pam.so stage/lib/libelevate_pam.so.0
+          [ -f target/release/libelevate_pam.a ] && cp target/release/libelevate_pam.a stage/lib/ || true
+          cp -a elevate-pam/include/security/. stage/include/security/
+          tar -czf elevate-pam-standalone.tar.gz -C stage .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elevate-pam-standalone
+          path: elevate-pam-standalone.tar.gz
+          retention-days: 30
+
+  # libelevate_crypto on its own — separate from pam-standalone, which
+  # bundles crypto compiled *into* libelevate_pam, not as a linkable library
+  # in its own right. Pure Rust, host default target — no special toolchain
+  # needed.
+  package-elevate-crypto-standalone:
+    name: package (elevate-crypto-standalone)
+    runs-on: ubuntu-latest
+    needs: [check, check-standalone-elevate-pam, clippy, fmt, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --manifest-path elevate-crypto/Cargo.toml
+      - name: tar
+        run: |
+          mkdir -p stage/lib
+          cp target/release/libelevate_crypto.so stage/lib/
+          [ -f target/release/libelevate_crypto.a ] && cp target/release/libelevate_crypto.a stage/lib/ || true
+          tar -czf elevate-crypto-standalone.tar.gz -C stage .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elevate-crypto-standalone
+          path: elevate-crypto-standalone.tar.gz
+          retention-days: 30
+
+  # packaging/etc/ (elevators policy, elevate-pam service configs, security
+  # defaults) — needed alongside either binary package on a real install,
+  # never actually shipped as a release asset before now.
+  package-config:
+    name: package (config)
+    runs-on: ubuntu-latest
+    needs: [check, check-standalone-elevate-pam, clippy, fmt, test]
+    steps:
+      - uses: actions/checkout@v4
+      - run: tar -czf elevate-privilege-config.tar.gz -C packaging etc
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elevate-privilege-config
+          path: elevate-privilege-config.tar.gz
+          retention-days: 30
+
+  # Real Zainium OS target: PAM .so modules + libelevate_pam.so +
+  # libelevate_crypto.so built with the crosstool-NG toolchain via nightly
+  # `-Z build-std` (see scripts/build-zainium.sh and
+  # targets/x86_64-zainium-linux-musl.json). Needs a self-hosted runner
+  # labeled `zainium-toolchain` with $ZAINIUM_TOOLCHAIN_BIN set — not yet
+  # registered, so this stays continue-on-error and out of release's hard
+  # `needs:` until it is (see top-of-file comment).
+  package-musl-shared:
+    name: package (musl-shared, Zainium target)
+    runs-on: [self-hosted, zainium-toolchain]
+    needs: [check, check-standalone-elevate-pam, clippy, fmt, test]
+    continue-on-error: true
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup toolchain install nightly-2026-05-24 --component rust-src
+      - run: ./scripts/build-zainium.sh dynamic
+      - run: file dist/zainium/overlayer/syshub/lib/security/pam_unix.so | grep -q "dynamically linked"
+      - name: tar
+        run: |
+          cd dist/zainium/overlayer/syshub
+          tar -czf "${GITHUB_WORKSPACE}/elevate-privilege-musl-shared.tar.gz" lib
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elevate-privilege-musl-shared
+          path: elevate-privilege-musl-shared.tar.gz
+          retention-days: 30
+
+  # ===========================================================================
+  # release — only on vX.Y.Z tags, publishes a GitHub Release with all
+  # tarballs + sha256 sums as assets.
+  #
+  # package-musl-shared deliberately NOT in `needs:` — see top-of-file
+  # comment: while no self-hosted zainium-toolchain runner is registered,
+  # that job would never get picked up, and a hard `needs:` would hang this
+  # job (and the whole release) forever waiting for it. Its artifact is
+  # downloaded best-effort below instead.
+  # ===========================================================================
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    needs:
+      - test
+      - package-static
+      - package-pam-standalone
+      - package-elevate-crypto-standalone
+      - package-config
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+
+      - name: download musl-shared package (optional — may not exist yet)
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: elevate-privilege-musl-shared
+          path: assets
+
+      - name: checksums
+        run: |
+          cd assets
+          ls -la
+          sha256sum *.tar.gz > SHA256SUMS
+
+      - name: publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          TAG="${GITHUB_REF#refs/tags/}"
+          gh release create "$TAG" assets/*.tar.gz assets/SHA256SUMS \
+            --title "elevate-privilege ${TAG}" \
+            --notes "elevate-privilege ${TAG} — memory-safe PAM + sudo + shadow replacement for Zainium OS"
