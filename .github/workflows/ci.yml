@@ -98,7 +98,9 @@ jobs:
         run: |
           id
           [ "$(id -u)" -ne 0 ] || { echo "runner is root — tests assume non-root, would silently bypass permission checks"; exit 1; }
-      - run: sudo apt-get update -qq && sudo apt-get install -y -qq tzdata
+      - name: tzdata (test_tzinfo needs a real, root-owned /usr/share/zoneinfo)
+        run: sudo DEBIAN_FRONTEND=noninteractive TZ=UTC apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive TZ=UTC apt-get install -y -qq --reinstall tzdata
+      - run: ls -ld /usr/share/zoneinfo /usr/share/zoneinfo/Europe/Amsterdam
       - run: cargo test --workspace --lib
       - run: cargo test --workspace --tests
 

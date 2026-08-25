@@ -1,48 +1,34 @@
-# `elevate` — Privilege Escalation Engine ⚡
+# `elevate`
 
 [![License](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](../LICENSE-APACHE)
 
-**`elevate`** is the core privilege escalation crate within the `elevate-privilege` workspace. It provides memory-safe binaries for executing commands with elevated permissions while preserving user environment configuration and auditing actions.
+Privilege escalation binaries: `elevate`, `elev`, `vielev`. Originally
+forked from [`sudo-rs`](https://github.com/memorysafety/sudo-rs), since
+reworked with its own rate limiter, policy engine, and `elevate-pam` /
+`elevate-crypto` integration.
 
-> [!NOTE]
-> **Lineage & Customization**: The `elevate` binary core was originally forked from `sudo-rs`. It has been heavily refactored, extended, and integrated into the unified workspace with custom rate limiters, security policies, and native `elevate-pam` / `elevate-crypto` bindings.
+## Binaries
 
----
+**`elevate`** — main privilege escalation executable, replaces `sudo`.
+Forwards the caller's environment (filtered), authenticates via
+`elevate-pam`, logs to `LOG_AUTHPRIV`.
 
-## 🎯 Included Binaries
+**`elev`** — lightweight escalation, replaces `doas`. Skips the heavier
+environment handling `elevate` does, for a faster simple-command path.
 
-### 1. `elevate`
-Main privilege escalation executable. Replaces legacy `sudo`.
-- **Environment Preservation**: Safely forwards user shell environment variables.
-- **PAM Integration**: Uses `elevate-pam` for authentication and session validation.
-- **Syslog Audit**: Logs all invocations to `LOG_AUTHPRIV`.
+**`vielev`** — edits privilege config files under a lock, replaces
+`visudo`. Verifies syntax before saving; rejects the write on error
+instead of leaving a broken config in place.
 
-### 2. `elev`
-Lightweight privilege escalation tool. Replaces legacy `doas`.
-- Fast execution path for simple commands without heavy environment loading.
-
-### 3. `vielev`
-Interactive editor wrapper for privilege configuration files. Replaces `visudo`.
-- Uses atomic file lock protection to prevent concurrent edit corruption.
-- Verifies configuration syntax before saving.
-
----
-
-## 🚀 Usage Examples
+## Usage
 
 ```bash
-# Run command as root
 elevate systemctl restart nginx
-
-# Run command as specific user
 elevate -u postgres psql
-
-# Edit elevate configuration safely
 vielev
 ```
 
----
+## License
 
-## 📄 License
-
-Distributed under your choice of the **MIT license** or the **Apache License 2.0**. See [`../LICENSE-MIT`](../LICENSE-MIT) and [`../LICENSE-APACHE`](../LICENSE-APACHE) for details.
+MIT OR Apache-2.0 — see [`../LICENSE-MIT`](../LICENSE-MIT) and
+[`../LICENSE-APACHE`](../LICENSE-APACHE).
