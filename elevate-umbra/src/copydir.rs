@@ -17,6 +17,10 @@ pub fn copy_tree(src: &Path, dst: &Path, new_uid: u32, new_gid: u32) -> Result<(
         fs::create_dir_all(dst)
             .map_err(|e| format!("failed to create {}: {}", dst.display(), e))?;
     }
+    // The recursion below only chowns *entries under* dst as it copies them
+    // -- dst itself (the home directory) was never chowned, leaving it
+    // root-owned.
+    chown_path(dst, new_uid, new_gid)?;
 
     let entries =
         fs::read_dir(src).map_err(|e| format!("failed to read {}: {}", src.display(), e))?;
@@ -76,6 +80,52 @@ pub fn copy_tree(src: &Path, dst: &Path, new_uid: u32, new_gid: u32) -> Result<(
             }
         }
         // Skip special files (devices, sockets, etc.)
+    }
+
+    Ok(())
+}
+
+/// Default skeleton files, embedded rather than read from an on-disk
+/// `/etc/skel/` (this system doesn't ship one — see config.rs's `skel_dir()`
+/// comment). `--skel <dir>` / a real `/etc/skel/` still takes priority in
+/// `useradd`; this is only the fallback when neither exists, so a fresh
+/// home directory isn't silently empty.
+const SKEL_BASHRC: &str = "\
+# ~/.bashrc\n\
+[ -z \"$PS1\" ] && return\n\
+PS1='\\u@\\h:\\w\\$ '\n\
+alias ll='ls -la'\n\
+alias grep='grep --color=auto'\n";
+
+const SKEL_BASH_PROFILE: &str = "\
+# ~/.bash_profile\n\
+[ -f ~/.bashrc ] && . ~/.bashrc\n";
+
+const SKEL_PROFILE: &str = "\
+# ~/.profile\n\
+[ -n \"$BASH_VERSION\" ] && [ -f ~/.bashrc ] && . ~/.bashrc\n";
+
+/// Populate a freshly created home directory with default dotfiles when no
+/// real skel directory exists to copy from. Not a port of any shadow-4.17.2
+/// file — real shadow always assumes `/etc/skel/` exists on disk; this
+/// covers the case where it doesn't.
+pub fn write_default_skel(dst: &Path, uid: u32, gid: u32) -> Result<(), String> {
+    if !dst.exists() {
+        fs::create_dir_all(dst)
+            .map_err(|e| format!("failed to create {}: {}", dst.display(), e))?;
+    }
+    chown_path(dst, uid, gid)?;
+
+    for (name, contents) in [
+        (".bashrc", SKEL_BASHRC),
+        (".bash_profile", SKEL_BASH_PROFILE),
+        (".profile", SKEL_PROFILE),
+    ] {
+        let path = dst.join(name);
+        fs::write(&path, contents).map_err(|e| format!("write {}: {}", path.display(), e))?;
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o644))
+            .map_err(|e| format!("chmod {}: {}", path.display(), e))?;
+        chown_path(&path, uid, gid)?;
     }
 
     Ok(())

@@ -191,7 +191,7 @@ fn main() {
                 );
             }
         } else {
-            if let Err(e) = std::fs::create_dir_all(home_path) {
+            if let Err(e) = copydir::write_default_skel(home_path, next_uid, gid) {
                 eprintln!(
                     "useradd: warning: cannot create home directory {}: {}",
                     home, e
