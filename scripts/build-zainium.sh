@@ -84,7 +84,7 @@ build_dynamic() (
 
   log "dynamic: x86_64-zainium-linux-musl (+${ZAINIUM_NIGHTLY}, -Z build-std)"
 
-  local pkg_args=(-p elevate-crypto -p elevate-pam -p elevate-pam-cli)
+  local pkg_args=(-p elevate-crypto -p elevate-pam -p libpam-abi -p elevate-pam-cli)
   for c in "${PAM_MODULE_CRATES[@]}"; do
     pkg_args+=(-p "$c")
   done
@@ -103,6 +103,20 @@ build_dynamic() (
     install -m 755 "$outdir/libelevate_pam.so" "$DIST/overlayer/syshub/lib/libelevate_pam.so.0"
   else
     warn "missing $outdir/libelevate_pam.so"
+  fi
+
+  # libpam-abi is a separate crate (elevate-pam/libpam-abi) that just
+  # statically links elevate-pam's own #[no_mangle] C ABI in again under
+  # the canonical libpam.so.0 SONAME (baked in via its own build.rs) --
+  # so pam-sys/dlopen("libpam.so.0") consumers (greetd, anything not
+  # written against elevate directly) link against a real drop-in. Two
+  # independent .so's built from two independent crates, not a rename of
+  # one file, so this can't collide with libelevate_pam.so.0 at runtime.
+  if [[ -f "$outdir/libpam.so" ]]; then
+    install -m 755 "$outdir/libpam.so" "$DIST/overlayer/syshub/lib/libpam.so.0"
+    ln -sf libpam.so.0 "$DIST/overlayer/syshub/lib/libpam.so"
+  else
+    warn "missing $outdir/libpam.so (libpam-abi crate)"
   fi
   if [[ -f "$outdir/libelevate_crypto.so" ]]; then
     install -m 755 "$outdir/libelevate_crypto.so" "$DIST/overlayer/syshub/lib/libelevate_crypto.so"

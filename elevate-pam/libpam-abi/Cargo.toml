@@ -1,0 +1,31 @@
+# Ships elevate-pam's C ABI a second time under the canonical libpam.so.0
+# name/SONAME, so pam-sys and any other dlopen("libpam.so.0")/-lpam
+# consumer (greetd, etc) links against Zainium's real PAM as a drop-in --
+# without renaming or duplicating anything in elevate-pam/pam itself.
+# See elevate-pam/pam's README "why two .so's" note.
+[package]
+name = "libpam-abi"
+publish = false
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description = "elevate-pam's C ABI, packaged as libpam.so.0"
+
+[lib]
+# `name = "pam"` is what makes cargo emit libpam.so (not liblibpam-abi.so) --
+# the crate/package name above is just this workspace's own bookkeeping.
+name = "pam"
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[dependencies]
+# elevate-pam's `#[no_mangle] extern "C"` FFI functions live in its own
+# compilation unit; no_mangle exists specifically to survive dead-code
+# elimination once statically linked in here via this dependency, so they
+# end up exported from THIS crate's .so too -- `pub use` below just keeps
+# rustc from warning that elevate-pam is otherwise "unused".
+elevate-pam = { workspace = true }

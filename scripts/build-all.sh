@@ -19,6 +19,7 @@ done
 cargo build --release \
   -p elevate-crypto \
   -p elevate-pam \
+  -p libpam-abi \
   -p elevate-pam-cli \
   -p elevate \
   -p elevate-umbra \
@@ -27,7 +28,7 @@ cargo build --release \
 
 echo "==> artifacts"
 ls -la target/release/libelevate_crypto* target/release/libelevate_pam* \
-  target/release/elevate target/release/elev target/release/vielev \
-  target/release/elevate-pam 2>/dev/null || true
+  target/release/libpam.so target/release/elevate target/release/elev \
+  target/release/vielev target/release/elevate-pam 2>/dev/null || true
 
 echo "Done."

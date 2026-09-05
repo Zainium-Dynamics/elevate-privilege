@@ -162,6 +162,15 @@ if [[ "$INSTALL_LIBS" -eq 1 ]]; then
   else
     warn "missing $rel/libelevate_pam.so (build with elevate-pam shared features)"
   fi
+  # libpam-abi: same C ABI, built separately so it carries its own
+  # libpam.so.0 SONAME (see elevate-pam/libpam-abi) -- the real drop-in
+  # for pam-sys/dlopen("libpam.so.0") consumers.
+  if [[ -f "$rel/libpam.so" ]]; then
+    install_file 755 "$rel/libpam.so" "$LIBDIR/libpam.so.0"
+    ln -sfn libpam.so.0 "$LIBDIR/libpam.so"
+  else
+    warn "missing $rel/libpam.so (libpam-abi crate)"
+  fi
   if [[ -f "$rel/libelevate_crypto.so" ]]; then
     install_file 755 "$rel/libelevate_crypto.so" "$LIBDIR/libelevate_crypto.so"
   fi
@@ -318,6 +327,7 @@ if [[ "$NO_VERIFY" -eq 0 ]]; then
 
   if [[ "$INSTALL_LIBS" -eq 1 ]]; then
     [[ -e "$LIBDIR/libelevate_pam.so.0" ]] || { warn "missing $LIBDIR/libelevate_pam.so.0"; verify_ok=0; }
+    [[ -e "$LIBDIR/libpam.so.0" ]] || { warn "missing $LIBDIR/libpam.so.0"; verify_ok=0; }
     [[ -e "$LIBDIR/libelevate_crypto.so" ]] || { warn "missing $LIBDIR/libelevate_crypto.so"; verify_ok=0; }
     if command -v ldd >/dev/null 2>&1 && [[ -x "$BINDIR/elevate" ]]; then
       if ldd "$BINDIR/elevate" 2>/dev/null | grep -qi "not found"; then

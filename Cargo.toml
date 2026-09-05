@@ -17,6 +17,7 @@ members = [
     "elevate-crypto",
     # pam core + CLI
     "elevate-pam/pam",
+    "elevate-pam/libpam-abi",
     "elevate-pam/elevate-pam-cli",
     # pam modules
     "elevate-pam/pam-unix",
@@ -56,6 +57,7 @@ default-members = [
     "elevate-paths",
     "elevate-crypto",
     "elevate-pam/pam",
+    "elevate-pam/libpam-abi",
     "elevate-pam/elevate-pam-cli",
     "elevate",
     "elevate-umbra",
