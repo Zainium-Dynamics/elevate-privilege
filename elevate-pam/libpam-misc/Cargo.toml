@@ -1,0 +1,26 @@
+# Real Linux-PAM's libpam_misc.so.0 -- generic terminal conversation
+# function (misc_conv) + environment helpers (pam_misc_setenv/
+# pam_misc_drop_env/pam_misc_paste_env), ported from linux-pam-1.7.2's
+# libpam_misc/{misc_conv,help_env}.c. Consumers like classic `login`/
+# agreety-style text greeters link against this for a ready-made
+# conversation function instead of writing their own termios handling.
+[package]
+name = "libpam-misc"
+publish = false
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description = "Linux-PAM's libpam_misc, ported to Rust"
+
+[lib]
+name = "pam_misc"
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[dependencies]
+elevate-pam = { workspace = true }
+libc = { workspace = true }
