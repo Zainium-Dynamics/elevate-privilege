@@ -263,6 +263,15 @@ impl PamHandle {
         self.env.getenv(name)
     }
 
+    /// Full accumulated environment (`pam_getenvlist()` equivalent) --
+    /// needed by application callers (e.g. greetd) that must pass every
+    /// `NAME=value` entry PAM has accumulated (via modules calling
+    /// `pam_putenv` during `open_session`, e.g. `pam_systemd.so`) into a
+    /// spawned session's own environment.
+    pub fn envlist(&self) -> &[String] {
+        self.env.list()
+    }
+
     /// Authenticate via stack dispatch.
     pub fn authenticate(&mut self, flags: i32) -> PamResult<()> {
         let status = crate::dispatch::dispatch(self, flags, StackKind::Auth)?;
