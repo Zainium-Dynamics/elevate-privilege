@@ -79,6 +79,9 @@ pub mod legacy_pamd;
 pub mod ffi;
 
 #[cfg(feature = "std")]
+pub mod modutil;
+
+#[cfg(feature = "std")]
 pub mod appl;
 
 #[cfg(feature = "builtin_modules")]
