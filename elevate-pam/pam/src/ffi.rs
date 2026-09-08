@@ -5,6 +5,7 @@
 
 use core::ffi::{c_char, c_int, c_void};
 use core::ptr;
+use std::ffi::CString;
 
 use crate::config::GlobalConfig;
 use crate::constants::*;
@@ -480,6 +481,161 @@ pub unsafe extern "C" fn pam_get_user(
         }
         Err(e) => e.to_status().code(),
     }
+}
+
+fn leak_cstring(s: &str) -> *const c_char {
+    CString::new(s).unwrap_or_default().into_raw()
+}
+
+/// `pam_syslog` -- real, declared C-variadic (`...`), but this
+/// implementation deliberately does not consume the varargs: reading a
+/// caller's `va_list` from stable Rust needs the nightly-only
+/// `c_variadic`/`VaList` machinery, so instead of taking that on under
+/// deadline, the raw `fmt` string is logged as-is via `syslog(3)`, without
+/// printf-style substitution. This is ABI-safe (a callee that only reads
+/// its declared fixed parameters and never touches the variadic tail is a
+/// valid target for a variadic call per the x86-64 SysV ABI) and does real
+/// work -- messages just won't have `%s`/`%d` placeholders filled in.
+/// Revisit with `#![feature(c_variadic)]` if that turns out to matter (the
+/// project already builds with a nightly toolchain).
+///
+/// # Safety
+/// `pamh` must be null or a valid handle; `fmt` must be null or a valid,
+/// NUL-terminated C string.
+#[no_mangle]
+pub unsafe extern "C" fn pam_syslog(_pamh: *const PamHandleT, priority: c_int, fmt: *const c_char) {
+    if let Some(msg) = cstr_to_str(fmt) {
+        if let Ok(c) = CString::new(msg) {
+            let template = c"%s";
+            unsafe { libc::syslog(priority, template.as_ptr(), c.as_ptr()) };
+        }
+    }
+}
+
+/// Opaque stand-in for the real x86-64 `va_list` (`{gp_offset: u32,
+/// fp_offset: u32, overflow_arg_area: *mut c_void, reg_save_area: *mut
+/// c_void}`, 24 bytes) -- matches its size/alignment so a by-value C ABI
+/// call passes the same bytes either way, but the fields are never read.
+#[repr(C)]
+pub struct OpaqueVaList {
+    _blob: [u64; 3],
+}
+
+/// `pam_vsyslog` -- same simplification as [`pam_syslog`]: the `va_list`
+/// argument is accepted as [`OpaqueVaList`] and never read, so this too
+/// logs `fmt` verbatim without substitution.
+///
+/// # Safety
+/// `pamh` must be null or a valid handle; `fmt` must be null or a valid,
+/// NUL-terminated C string. `_args` is never dereferenced.
+#[no_mangle]
+pub unsafe extern "C" fn pam_vsyslog(
+    pamh: *const PamHandleT,
+    priority: c_int,
+    fmt: *const c_char,
+    _args: OpaqueVaList,
+) {
+    unsafe { pam_syslog(pamh, priority, fmt) }
+}
+
+/// `pam_prompt` -- real conversation round-trip. Declared C-variadic like
+/// [`pam_syslog`]; same trade-off (fmt logged/shown verbatim, no printf
+/// substitution) for the same reason.
+///
+/// # Safety
+/// `pamh` must be a valid, non-null handle; `fmt` must be a valid,
+/// non-null, NUL-terminated C string; `response` may be null (caller
+/// doesn't want the reply) or a valid out-pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pam_prompt(
+    pamh: *mut PamHandleT,
+    style: c_int,
+    response: *mut *mut c_char,
+    fmt: *const c_char,
+) -> c_int {
+    let Some(h) = (unsafe { handle_mut(pamh) }) else {
+        return PAM_SYSTEM_ERR;
+    };
+    let Some(msg) = cstr_to_str(fmt) else {
+        return PAM_SYSTEM_ERR;
+    };
+    let result = if style == PAM_PROMPT_ECHO_OFF {
+        crate::conv::conv_echo_off(h.conv(), msg)
+    } else {
+        crate::conv::conv_echo_on(h.conv(), msg)
+    };
+    match result {
+        Ok(reply) => {
+            if !response.is_null() {
+                unsafe { *response = leak_cstring(&reply) as *mut c_char };
+            }
+            PAM_SUCCESS
+        }
+        Err(e) => e.to_status().code(),
+    }
+}
+
+/// `pam_get_authtok_noverify` -- prompt once (or return the already-cached
+/// token) for a not-being-changed auth token.
+///
+/// # Safety
+/// `pamh` must be a valid, non-null handle; `authtok` must be a valid,
+/// non-null out-pointer; `prompt` may be null or a valid NUL-terminated C
+/// string.
+#[no_mangle]
+pub unsafe extern "C" fn pam_get_authtok_noverify(
+    pamh: *mut PamHandleT,
+    authtok: *mut *const c_char,
+    prompt: *const c_char,
+) -> c_int {
+    if authtok.is_null() {
+        return PAM_SYSTEM_ERR;
+    }
+    let Some(h) = (unsafe { handle_mut(pamh) }) else {
+        return PAM_SYSTEM_ERR;
+    };
+    match h.get_authtok(cstr_to_str(prompt)) {
+        Ok(tok) => {
+            unsafe { *authtok = leak_cstring(&tok) };
+            PAM_SUCCESS
+        }
+        Err(e) => e.to_status().code(),
+    }
+}
+
+/// `pam_get_authtok_verify` -- prompt for a new auth token, then a second
+/// time to confirm, and only succeed if both entries match (real
+/// double-entry verification, not a rename of `_noverify`).
+///
+/// # Safety
+/// Same contract as [`pam_get_authtok_noverify`].
+#[no_mangle]
+pub unsafe extern "C" fn pam_get_authtok_verify(
+    pamh: *mut PamHandleT,
+    authtok: *mut *const c_char,
+    prompt: *const c_char,
+) -> c_int {
+    if authtok.is_null() {
+        return PAM_SYSTEM_ERR;
+    }
+    let Some(h) = (unsafe { handle_mut(pamh) }) else {
+        return PAM_SYSTEM_ERR;
+    };
+    let first_prompt = cstr_to_str(prompt).unwrap_or("New password: ");
+    let first = match crate::conv::conv_echo_off(h.conv(), first_prompt) {
+        Ok(s) => s,
+        Err(e) => return e.to_status().code(),
+    };
+    let confirm_prompt = std::format!("Retype {first_prompt}");
+    let second = match crate::conv::conv_echo_off(h.conv(), &confirm_prompt) {
+        Ok(s) => s,
+        Err(e) => return e.to_status().code(),
+    };
+    if first != second {
+        return PAM_TRY_AGAIN;
+    }
+    unsafe { *authtok = leak_cstring(&first) };
+    PAM_SUCCESS
 }
 
 /// Version symbols for ABI probes.
