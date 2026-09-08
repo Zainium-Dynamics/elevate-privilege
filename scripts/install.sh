@@ -89,6 +89,7 @@ SBINDIR="${SBINDIR:-${DESTROOT}/sbin}"
 LIBDIR="${LIBDIR:-${DESTROOT}/lib}"
 MODDIR="${MODDIR:-${LIBDIR}/security}"
 ETCDIR="${ETCDIR:-${DESTROOT}/etc}"
+INCLUDEDIR="${INCLUDEDIR:-${DESTROOT}/include}"
 PKG_ETC="${ROOT}/etc"
 
 rel="${ROOT}/target/release"
@@ -171,6 +172,19 @@ if [[ "$INSTALL_LIBS" -eq 1 ]]; then
   else
     warn "missing $rel/libpam.so (libpam-abi crate)"
   fi
+
+  # Real Linux-PAM's own public headers (security/pam_appl.h etc),
+  # vendored under elevate-pam/pam/include/security -- same ABI, so any
+  # C module/application (pam_systemd.c and friends) can #include these
+  # directly and link against libpam.so.0, no Alpine linux-pam-dev
+  # borrowing needed anymore.
+  if [[ -d "${ROOT}/elevate-pam/pam/include/security" ]]; then
+    install -d "${INCLUDEDIR}/security"
+    for h in "${ROOT}"/elevate-pam/pam/include/security/*.h; do
+      install_file 644 "$h" "${INCLUDEDIR}/security/$(basename "$h")"
+    done
+  fi
+
   if [[ -f "$rel/libelevate_crypto.so" ]]; then
     install_file 755 "$rel/libelevate_crypto.so" "$LIBDIR/libelevate_crypto.so"
   fi
