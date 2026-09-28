@@ -17,7 +17,6 @@
 
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use std::ffi::{CStr, CString};
 use std::fs;
 use std::io::Read;
 use std::os::fd::AsRawFd;
@@ -214,26 +213,35 @@ struct User {
     home: String,
 }
 
+/// The passwd entry for `name`, read from the configured passwd file (then
+/// /etc/passwd). Not getpwnam(): statically linked callers such as greetd
+/// carry a stock musl that only ever opens the literal /etc/passwd.
+fn lookup_passwd(name: &str) -> Option<User> {
+    let text = fs::read_to_string(elevate_paths::get().passwd_file())
+        .or_else(|_| fs::read_to_string("/etc/passwd"))
+        .ok()?;
+    text.lines().find_map(|line| {
+        let f: Vec<&str> = line.splitn(7, ':').collect();
+        if f.len() < 7 || f[0] != name {
+            return None;
+        }
+        Some(User {
+            uid: f[2].parse().ok()?,
+            home: f[5].to_string(),
+        })
+    })
+}
+
 fn acquire_user(pamh: &PamHandle) -> Result<User, PamStatus> {
     let Some(name) = pamh.user().filter(|u| !u.is_empty()) else {
         crate::log::error(pamh, "User name not valid.");
         return Err(status(PAM_SERVICE_ERR));
     };
 
-    let c_name = CString::new(name).map_err(|_| status(PAM_SERVICE_ERR))?;
-    // SAFETY: c_name is a valid NUL-terminated string; the passwd entry is
-    // copied out before any other libc call can overwrite it.
-    unsafe {
-        let pw = libc::getpwnam(c_name.as_ptr());
-        if pw.is_null() {
-            crate::log::error(pamh, &format!("Failed to get user record of '{name}'."));
-            return Err(status(PAM_USER_UNKNOWN));
-        }
-        Ok(User {
-            uid: (*pw).pw_uid,
-            home: CStr::from_ptr((*pw).pw_dir).to_string_lossy().into_owned(),
-        })
-    }
+    lookup_passwd(name).ok_or_else(|| {
+        crate::log::error(pamh, &format!("Failed to get user record of '{name}'."));
+        status(PAM_USER_UNKNOWN)
+    })
 }
 
 #[derive(PartialEq)]
