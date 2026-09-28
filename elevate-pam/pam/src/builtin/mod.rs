@@ -21,6 +21,7 @@ mod rootok;
 mod securetty;
 mod shells;
 mod succeed_if;
+mod systemd;
 mod tally2;
 mod umask;
 mod unix;
@@ -59,6 +60,7 @@ pub fn register_all() {
     register_one(mkhomedir::hooks());
     register_one(tally2::hooks());
     register_one(namespace::hooks());
+    register_one(systemd::hooks());
 
     // aliases without path
     register_alias("pam_permit.so", "permit");
@@ -88,6 +90,7 @@ pub fn register_all() {
     register_alias("pam_mkhomedir.so", "mkhomedir");
     register_alias("pam_tally2.so", "tally2");
     register_alias("pam_namespace.so", "namespace");
+    register_alias("pam_systemd.so", "systemd");
 }
 
 fn register_one(hooks: ModuleHooks) {

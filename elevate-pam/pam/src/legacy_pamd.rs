@@ -26,10 +26,14 @@ pub fn load_service(service: &str, confdir: Option<&str>) -> PamResult<ServiceCo
     paths.push(PathBuf::from(format!(
         "{prefix}/etc/elevate-pam/legacy-pamd/{name}"
     )));
+    // Linux-PAM's vendordir: distro-shipped stacks (e.g. systemd's
+    // systemd-user, used by user@.service) live here, /etc/pam.d overrides.
+    paths.push(PathBuf::from(format!("{prefix}/lib/pam.d/{name}")));
     paths.push(PathBuf::from(format!("/etc/pam.d/{name}")));
     paths.push(PathBuf::from(format!(
         "/etc/elevate-pam/legacy-pamd/{name}"
     )));
+    paths.push(PathBuf::from(format!("/usr/lib/pam.d/{name}")));
 
     for p in paths {
         // skip .toml in this legacy path
