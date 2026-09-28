@@ -1,0 +1,16 @@
+[package]
+name = "pam-systemd"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "elevate-pam systemd-logind session module"
+publish = false
+
+[lib]
+name = "pam_systemd"
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+elevate-pam = { workspace = true }
+libc = { workspace = true }

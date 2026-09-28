@@ -644,6 +644,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "pam-systemd"
+version = "1.0.1"
+dependencies = [
+ "elevate-pam",
+ "libc",
+]
+
+[[package]]
 name = "pam-tally2"
 version = "1.0.1"
 dependencies = [
