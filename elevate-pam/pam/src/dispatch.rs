@@ -54,7 +54,7 @@ fn resolve_includes(
                 entry.module
             )));
         }
-        match crate::config::ServiceConfig::load_service(global, &entry.module) {
+        match crate::config::ServiceConfig::load_service_from(global, &entry.module, None, false) {
             Ok(nested) => {
                 let nested_entries = nested.stack_for(kind).to_vec();
                 let resolved = resolve_includes(global, &nested_entries, kind, depth + 1)?;
@@ -112,7 +112,12 @@ pub fn dispatch(pamh: &mut PamHandle, flags: i32, kind: StackKind) -> PamResult<
             let nested_name = &entry.module;
             #[cfg(feature = "std")]
             {
-                match crate::config::ServiceConfig::load_service(pamh.global(), nested_name) {
+                match crate::config::ServiceConfig::load_service_from(
+                    pamh.global(),
+                    nested_name,
+                    None,
+                    false,
+                ) {
                     Ok(nested) => {
                         let nested_entries = nested.stack_for(kind).to_vec();
                         let sub = dispatch_entries(

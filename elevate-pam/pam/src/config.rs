@@ -642,9 +642,51 @@ mod std_io {
     }
 
     impl ServiceConfig {
-        /// Load service by name using path layout from global config.
+        /// Load service by name using path layout from global config,
+        /// falling back to the default ("other") service like Linux-PAM.
         pub fn load_service(global: &GlobalConfig, service: &str) -> PamResult<Self> {
+            Self::load_service_from(global, service, None, true)
+        }
+
+        /// Find the stack for `service` the way Linux-PAM does: its own TOML
+        /// file, else its classic pam.d file (`legacy_pamd`). Only when the
+        /// service has neither, and `fallback_other` is set, use the default
+        /// service. `include`/`substack` targets pass `false`: a missing one
+        /// is an error, never silently `other`.
+        pub fn load_service_from(
+            global: &GlobalConfig,
+            service: &str,
+            confdir: Option<&str>,
+            fallback_other: bool,
+        ) -> PamResult<Self> {
             let name = sanitize_service_name(service, global.security.reject_service_paths)?;
+            let err = match Self::load_toml_service(global, &name) {
+                Ok(cfg) => return Ok(cfg),
+                Err(e) => e,
+            };
+
+            #[cfg(feature = "legacy_pamd")]
+            if global.features.legacy_pamd {
+                if let Ok(cfg) = crate::legacy_pamd::load_service(&name, confdir) {
+                    return Ok(cfg);
+                }
+            }
+            #[cfg(not(feature = "legacy_pamd"))]
+            let _ = confdir;
+
+            if fallback_other && name != global.paths.default_service {
+                return Self::load_service_from(
+                    global,
+                    &global.paths.default_service,
+                    confdir,
+                    false,
+                );
+            }
+            Err(err)
+        }
+
+        /// The service's own TOML stack only, no fallback.
+        fn load_toml_service(global: &GlobalConfig, name: &str) -> PamResult<Self> {
             let mut candidates: Vec<PathBuf> = Vec::new();
             candidates.push(PathBuf::from(&global.paths.services_dir).join(format!("{name}.toml")));
             candidates.push(PathBuf::from(&global.paths.vendor_dir).join(format!("{name}.toml")));
@@ -664,11 +706,6 @@ mod std_io {
                     cfg.validate(&global.security)?;
                     return Ok(cfg);
                 }
-            }
-
-            // Fallback: other.toml
-            if name != global.paths.default_service {
-                return Self::load_service(global, &global.paths.default_service);
             }
 
             Err(PamError::Config(alloc::format!(
@@ -746,5 +783,44 @@ module = "unix"
         let a = ControlFlag::Sufficient.actions();
         assert_eq!(a[PAM_SUCCESS as usize], Action::Done);
         assert_eq!(a[PAM_AUTH_ERR as usize], Action::Ignore);
+    }
+
+    #[cfg(all(feature = "std", feature = "legacy_pamd"))]
+    #[test]
+    fn service_pamd_file_beats_other_toml() {
+        use crate::types::StackKind;
+
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("other.toml"),
+            "[service]\nname = \"other\"\n\n[[session]]\ncontrol = \"required\"\nmodule = \"unix\"\n",
+        )
+        .unwrap();
+        std::fs::write(
+            dir.path().join("greeter"),
+            "session required pam_unix.so\nsession optional pam_systemd.so\n",
+        )
+        .unwrap();
+        let confdir = dir.path().to_str().unwrap();
+        let mut global = GlobalConfig::embedded_default();
+        global.paths.services_dir = confdir.into();
+        global.paths.conf_dir = confdir.into();
+
+        let svc =
+            ServiceConfig::load_service_from(&global, "greeter", Some(confdir), true).unwrap();
+        let mods: Vec<&str> = svc
+            .stack_for(StackKind::OpenSession)
+            .iter()
+            .map(|e| e.module.as_str())
+            .collect();
+        assert_eq!(mods, ["pam_unix.so", "pam_systemd.so"]);
+
+        let other =
+            ServiceConfig::load_service_from(&global, "missing", Some(confdir), true).unwrap();
+        assert_eq!(other.stack_for(StackKind::OpenSession)[0].module, "unix");
+
+        assert!(
+            ServiceConfig::load_service_from(&global, "missing", Some(confdir), false).is_err()
+        );
     }
 }

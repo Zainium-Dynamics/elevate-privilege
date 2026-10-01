@@ -81,31 +81,7 @@ impl PamHandle {
         }
 
         #[cfg(feature = "std")]
-        let service = {
-            match ServiceConfig::load_service(&global, &service_name) {
-                Ok(s) => s,
-                Err(e) => {
-                    // Try legacy pam.d if enabled
-                    #[cfg(feature = "legacy_pamd")]
-                    {
-                        if global.features.legacy_pamd {
-                            if let Ok(s) = crate::legacy_pamd::load_service(&service_name, confdir)
-                            {
-                                s
-                            } else {
-                                return Err(e);
-                            }
-                        } else {
-                            return Err(e);
-                        }
-                    }
-                    #[cfg(not(feature = "legacy_pamd"))]
-                    {
-                        return Err(e);
-                    }
-                }
-            }
-        };
+        let service = ServiceConfig::load_service_from(&global, &service_name, confdir, true)?;
 
         #[cfg(not(feature = "std"))]
         let service = ServiceConfig::default();
