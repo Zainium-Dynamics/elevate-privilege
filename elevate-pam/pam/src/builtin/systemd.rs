@@ -690,8 +690,9 @@ fn register_session(
         Json::Obj(alloc::vec![("pid".into(), Json::Num(pid.to_string()))]),
     ));
     put_str(&mut p, "Service", &c.service);
-    p.push(("Type".into(), Json::Str(c.type_.clone())));
-    p.push(("Class".into(), Json::Str(c.class.clone())));
+    // Varlink enums use '_' where systemd's names use '-' (JSON_BUILD_PAIR_ENUM).
+    p.push(("Type".into(), Json::Str(c.type_.replace('-', "_"))));
+    p.push(("Class".into(), Json::Str(c.class.replace('-', "_"))));
     put_str(&mut p, "Desktop", &c.desktop);
     put_str(&mut p, "Seat", &c.seat);
     if c.vtnr != 0 {
@@ -732,7 +733,10 @@ fn register_session(
         }
         crate::log::error(
             pamh,
-            &format!("Varlink call io.systemd.Login.CreateSession failed: {error}"),
+            &format!(
+                "Varlink call io.systemd.Login.CreateSession failed: {error} {}",
+                reply.encode()
+            ),
         );
         return Err(status(PAM_SERVICE_ERR));
     }
