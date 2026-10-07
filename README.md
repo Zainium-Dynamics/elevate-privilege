@@ -1,109 +1,111 @@
-# `elevate-pam`
+# elevate-pam
 
-[![License](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE-APACHE)
+A Linux-PAM implementation in Rust. It follows Linux-PAM: the same four
+stacks (auth, account, session, password), the same C `pam_*` ABI so existing
+Linux-PAM modules can load, and modules named and behaving like the usual
+`pam_unix`, `pam_env`, `pam_limits`, `pam_faillock` and so on. The one big
+difference is that service stacks are TOML files instead of `/etc/pam.d` text
+(the old format can still be read if you build with the `legacy_pamd` feature).
 
-A modular PAM implementation in Rust: `auth`, `account`, `session`,
-`password` facilities, TOML-configured (no `/etc/pam.d` text format).
+It's used by [elevate](https://github.com/Zainium-Dynamics/elevate), but
+nothing here depends on it.
 
-## Facilities
+Status: works for the stacks we use it for, but it's young. `chauthtok` in the
+builtin `pam_unix` is not finished (it returns `PAM_AUTHTOK_ERR`), so be
+careful with password-change stacks. See [SECURITY.md](SECURITY.md).
 
-- **`auth`** — authenticates against shadow hashes or crypto tokens.
-- **`account`** — expiration, password aging, access control checks.
-- **`session`** — session setup/teardown, environment initialization.
-- **`password`** — interactive password updates with quality checks.
+## What's here
 
-## Behavior notes
-
-- Environment is cleaned/validated on session init (`TERM`, `PATH`,
-  `SHELL`, `LANG`).
-- Account lockout after consecutive failed logins is built in, not a
-  separate module you have to remember to stack.
-- Audit goes to syslog (`LOG_AUTHPRIV`).
-
-## Built-in / modular coverage
-
-Built in: `pam_permit`, `pam_deny`, `pam_rootok`, `pam_unix`,
-`pam_env`, `pam_limits`, `pam_wheel`, `pam_nologin`, `pam_securetty`,
-`pam_shells`, `pam_motd`, `pam_umask`, `pam_exec`, `pam_succeed_if`,
-`pam_mail`, `pam_faildelay`, `pam_warn`, `pam_issue`, `pam_localuser`,
-`pam_usertype`, `pam_echo`, `pam_debug`.
-
-Separate crates: `pam-access`, `pam-faillock`, `pam-mkhomedir`,
-`pam-namespace`, `pam-tally2`, `pam-pwhistory`, `pam-loginuid`.
-
-## Build
-
-```sh
-make            # cargo build --workspace --release
-make test       # cargo test --workspace
-make check-nostd
+```
+pam/              the engine, built as libelevate_pam (rlib, cdylib, staticlib)
+libpam-abi/       libpam.so.0-compatible shim
+libpam-misc/      pam_misc helpers
+elevate-pam-cli/  small CLI
+pam-*/            modules built as loadable pam_*.so (unix, env, limits, ...)
+helpers/          unix_chkpwd
+etc/              example config and service stacks
+include/security/ C headers
 ```
 
-The only external sibling is [`elevate-crypto`](https://github.com/Zainium-Dynamics/elevate-crypto)
-(pure-Rust Blake3 / Ed25519 / password hashing), pulled in as a git
-dependency behind the default `elevate_crypto` feature. To build without it:
+Builtin modules (compiled into the library): `access`, `debug`, `deny`, `echo`,
+`env`, `exec`, `faildelay`, `faillock`, `issue`, `limits`, `localuser`, `mail`,
+`mkhomedir`, `motd`, `namespace`, `nologin`, `permit`, `rootok`, `securetty`,
+`shells`, `succeed_if`, `systemd`, `tally2`, `umask`, `unix`, `usertype`,
+`warn`, `wheel`. Some of them also exist as separate `pam-*` crates if you'd
+rather load them as `.so` files.
+
+## Building
+
+```sh
+make            # release build of everything
+make test
+```
+
+Passwords are checked with [elevate-crypto](https://github.com/Zainium-Dynamics/elevate-crypto),
+which cargo pulls from git. If you'd rather not depend on it:
 
 ```sh
 cargo build --release -p elevate-pam --no-default-features \
   --features std,dynload,syslog,secure_mem,fail_delay,builtin_modules
 ```
 
-## Configuration and paths
+The core also builds without `std` (`make check-nostd`).
 
-elevate-pam reads everything from `elevate-pam.toml`, found at the first of:
+## Configuration
 
-1. `$ELEVATE_PAM_CONFIG`
+The main config is `elevate-pam.toml`. elevate-pam uses the first one it finds:
+
+1. the file named by `$ELEVATE_PAM_CONFIG`
 2. `/etc/elevate-pam/elevate-pam.toml`
 3. `/etc/elevate-pam.toml`
 4. `./elevate-pam.toml`
 
-Install locations are set in its `[paths]` table. All keys are optional and
-derive from `prefix` (default empty, meaning `/`), so changing only `prefix`
-moves everything:
+Where everything lives is set in its `[paths]` table. You only need to set what
+differs from the defaults, and anything you leave out is worked out from
+`prefix`:
 
 ```toml
 [paths]
-prefix = "/opt/pam"              # etc_dir, conf_dir, module_dir, ... follow
-# etc_dir    = "<prefix>/etc"                    # passwd, shadow, security/*
-# conf_dir   = "<etc_dir>/elevate-pam"           # services/, services.d/
-# module_dir = "<prefix>/lib/security"           # pam_*.so
+prefix = "/opt/pam"
+# etc_dir    = "<prefix>/etc"
+# conf_dir   = "<etc_dir>/elevate-pam"      # services/, services.d/
+# module_dir = "<prefix>/lib/security"      # pam_*.so
 # vendor_dir = "<prefix>/lib/elevate-pam/services"
-# var_dir    = "<prefix>/var/run/elevate"        # faillock, tallylog, timestamps
+# var_dir    = "<prefix>/var/run/elevate"   # faillock, tallylog, timestamps
 ```
 
-With no config file the conventional Linux layout is used. A reference
-config is in [`etc/elevate-pam/elevate-pam.toml`](etc/elevate-pam/elevate-pam.toml);
-service stacks are in [`etc/elevate-pam/services/`](etc/elevate-pam/services).
+With no config file it uses the normal layout (`/etc`, `/lib/security`, ...).
+There's a commented example in
+[etc/elevate-pam/elevate-pam.toml](etc/elevate-pam/elevate-pam.toml) and sample
+stacks in [etc/elevate-pam/services/](etc/elevate-pam/services).
 
-## Install
+A service stack looks like this (`services/other.toml`):
+
+```toml
+[service]
+name = "other"
+
+[[auth]]
+control = "required"
+module = "unix"
+
+[[account]]
+control = "required"
+module = "unix"
+```
+
+## Installing
 
 ```sh
-sudo make install                       # real /lib, /etc, /bin
-make install DESTDIR=$PWD/pkg           # staged, for packaging
-make install PREFIX=/opt/pam            # relocated; bakes prefix into the config
+sudo make install                    # /lib, /etc, /bin
+make install DESTDIR=$PWD/pkg        # stage it for a package
+make install PREFIX=/opt/pam         # relocated, writes prefix into the config
 ```
 
-For a relocated install, run consumers with
+For a relocated install, point programs at the config with
 `ELEVATE_PAM_CONFIG=/opt/pam/etc/elevate-pam/elevate-pam.toml`.
-
-## Layout
-
-```
-pam/             core engine (libelevate_pam: rlib, cdylib, staticlib)
-libpam-abi/      libpam.so.0-compatible C ABI shim
-libpam-misc/     pam_misc helpers
-elevate-pam-cli/ elevate-pam CLI
-pam-*/           loadable modules (pam_unix.so, pam_faillock.so, ...)
-helpers/         unix_chkpwd
-etc/             reference config and service stacks
-include/         C headers (security/pam_*.h)
-```
-
-Related projects: [`elevate`](https://github.com/Zainium-Dynamics/elevate)
-(sudo/su replacement), [`elevate-umbra`](https://github.com/Zainium-Dynamics/elevate-umbra)
-(shadow-utils replacement), [`elevate-crypto`](https://github.com/Zainium-Dynamics/elevate-crypto).
 
 ## License
 
-MIT OR Apache-2.0 — see [`LICENSE-MIT`](LICENSE-MIT) and
-[`LICENSE-APACHE`](LICENSE-APACHE).
+MIT OR Apache-2.0, see [LICENSE-MIT](LICENSE-MIT) and
+[LICENSE-APACHE](LICENSE-APACHE).
