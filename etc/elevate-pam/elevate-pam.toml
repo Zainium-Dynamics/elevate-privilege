@@ -1,9 +1,8 @@
-# elevate-pam — system configuration (installs to /overlayer/syshub/etc/elevate-pam/)
+# elevate-pam — system configuration
 # SPDX-License-Identifier: MIT OR Apache-2.0
 #
-# Zainium paths: immutable base under /overlayer/syshub (no /usr, no bare
-# /bin /sbin /lib /etc at root) — mirrors elevate_privilege.toml's [paths].
-# Service stacks: /overlayer/syshub/etc/elevate-pam/services/<name>.toml
+# Install as /etc/elevate-pam/elevate-pam.toml (or point $ELEVATE_PAM_CONFIG
+# at it). Service stacks live in <conf_dir>/services/<name>.toml.
 
 [project]
 name = "elevate-pam"
@@ -15,20 +14,20 @@ shared = true
 static = false
 standalone = false
 
+# Where elevate-pam finds its files. Every key is optional; anything unset is
+# derived from `prefix` (default "" = the real `/`), so changing only `prefix`
+# moves everything together. Defaults shown in comments:
 [paths]
-prefix = "/overlayer/syshub"
-bindir = "/overlayer/syshub/bin"
-sbindir = "/overlayer/syshub/bin"
-libdir = "/overlayer/syshub/lib"
-includedir = "/overlayer/syshub/include"
-conf_dir = "/overlayer/syshub/etc/elevate-pam"
-services_dir = "/overlayer/syshub/etc/elevate-pam/services"
-services_dropin_dir = "/overlayer/syshub/etc/elevate-pam/services.d"
-module_dir = "/overlayer/syshub/lib/security"
-vendor_dir = "/overlayer/syshub/lib/elevate-pam/services"
+# prefix = ""                                  # install root
+# etc_dir = "<prefix>/etc"                     # passwd, shadow, security/*, ...
+# conf_dir = "<etc_dir>/elevate-pam"           # this file, services/, services.d/
+# module_dir = "<prefix>/lib/security"         # pam_*.so
+# vendor_dir = "<prefix>/lib/elevate-pam/services"
+# var_dir = "<prefix>/var/run/elevate"         # faillock, tallylog, timestamps
+#
+# Example: a distro whose whole tree lives under /overlayer/syshub
+# prefix = "/overlayer/syshub"
 default_service = "other"
-elevators_dir = "/overlayer/syshub/etc/elevators"
-elevators_file = "/overlayer/syshub/etc/elevators/elevate.toml"
 
 [security]
 fail_delay_usec = 2_000_000

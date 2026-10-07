@@ -1,0 +1,68 @@
+[package]
+name = "elevate-pam"
+version = "1.0.1"
+edition = "2021"
+rust-version = "1.96"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Zainium-Dynamics/elevate-privilege"
+homepage = "https://zainiumdynamics.tech"
+authors = ["alizain <alizain@zainiumdynamics.tech>"]
+description = "elevate-pam — authentication library for elevate/elev/viselev (MIT OR Apache-2.0)"
+readme = "../README.md"
+categories = ["authentication", "os::linux-apis"]
+keywords = ["pam", "authentication", "linux", "security"]
+
+[lib]
+name = "elevate_pam"
+crate-type = ["rlib", "cdylib", "staticlib"]
+path = "src/lib.rs"
+
+[features]
+# legacy_pamd off by default — elevate uses TOML services under /etc/elevate-pam
+default = ["std", "dynload", "syslog", "secure_mem", "fail_delay", "builtin_modules", "shared", "elevate_crypto"]
+
+# Unified std / no_std: enable `std` for full OS integration; disable for no_std+alloc cores.
+std = ["alloc", "serde/std", "toml/preserve_order", "libc", "log/std", "dep:nix", "dep:once_cell"]
+alloc = ["serde/alloc", "toml/parse", "zeroize/alloc", "log"]
+
+# Linkage / deployment categories (see elevate-pam.toml [build])
+shared = ["std", "dynload"]
+static = ["std", "builtin_modules"]
+standalone = ["std", "builtin_modules", "static"]
+
+# Optional capabilities
+dynload = ["std"]
+syslog = ["std"]
+legacy_pamd = ["std"]
+secure_mem = ["zeroize"]
+fail_delay = ["std"]
+builtin_modules = []
+elevate_crypto = ["dep:elevate-crypto"]
+
+# Internal: expose extra test hooks
+test-utils = []
+
+
+# `elevate-crypto` (pure-Rust Blake3/Ed25519/password hashing) is its own
+# repo. Disable the `elevate_crypto` feature to build without it.
+[dependencies]
+serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
+toml = { version = "0.8", default-features = false, features = ["parse"] }
+zeroize = { version = "1.8", default-features = false, features = ["alloc"], optional = true }
+log = { version = "0.4", default-features = false, optional = true }
+bitflags = "2.6"
+libc = { version = "0.2", optional = true }
+nix = { version = "0.29", default-features = false, features = ["user", "fs", "process", "signal"], optional = true }
+once_cell = { version = "1.20", optional = true }
+elevate-crypto = { git = "https://github.com/Zainium-Dynamics/elevate-crypto", tag = "v1.0.1", optional = true, default-features = true, features = ["system_crypt"] }
+
+[dev-dependencies]
+tempfile = "3.14"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[[example]]
+name = "pam-client"
+path = "../examples/pam-client.rs"

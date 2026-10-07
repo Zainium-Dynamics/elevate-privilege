@@ -1,7 +1,12 @@
 /target
-**/target
-/dist
+**/*.rs.bk
+*.pyc
+__pycache__/
+.idea/
+.vscode/
 *.swp
+*~
 .DS_Store
-third_party/openssl-4.0.1/install/
-third_party/openssl-4.0.1/*.o
+/dist
+/out
+config.local.toml

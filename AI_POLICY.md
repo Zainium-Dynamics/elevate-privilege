@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `elevate-privilege` workspace provides critical system-level authentication, privilege escalation, and user management capabilities. Due to the high-security nature of authentication software, this **Strict AI Policy** governs the generation, auditing, and acceptance of any AI-assisted code contributions within this repository.
+The `elevate-pam` workspace provides critical system-level authentication capabilities. Due to the high-security nature of authentication software, this **Strict AI Policy** governs the generation, auditing, and acceptance of any AI-assisted code contributions within this repository.
 
 ---
 
@@ -22,7 +22,7 @@ The `elevate-privilege` workspace provides critical system-level authentication,
 
 ### 4. Zero Supply-Chain Contamination
 - **Dependency Guard**: AI tools must not add unvetted third-party crates or external C dependencies to the workspace.
-- **Standalone Guarantee**: All authentication modules must remain internal to the consolidated `elevate-privilege` workspace.
+- **Standalone Guarantee**: All authentication modules must remain internal to this `elevate-pam` workspace.
 
 ### 5. Privacy & Data Confidentiality
 - **No Sensitive Leakage**: Developers using AI coding assistants must ensure that production configuration files, system user entries, and cryptographic private keys are never transmitted to external AI model endpoints.

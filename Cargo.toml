@@ -1,69 +1,49 @@
-# elevate monorepo — single workspace
-# Layout:
-#   elevate-crypto/   pure Rust: Blake3 + Ed25519 + password-crypt (no C OpenSSL)
-#   elevate-pam/      libelevate_pam + modules + CLI
-#   elevate/     elevate / elev / viselev
-#
-# One config file: elevate.toml (shared / static / standalone, paths, crypto)
+# elevate-pam -- PAM engine, builtin modules and CLI (Linux-PAM replacement)
 #
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 [workspace]
 resolver = "2"
 members = [
-    # shared install-path config (single source of truth for elevate_privilege.toml)
-    "elevate-paths",
-    # crypto
-    "elevate-crypto",
-    # pam core + CLI
-    "elevate-pam/pam",
-    "elevate-pam/libpam-abi",
-    "elevate-pam/libpam-misc",
-    "elevate-pam/elevate-pam-cli",
-    # pam modules
-    "elevate-pam/pam-unix",
-    "elevate-pam/pam-env",
-    "elevate-pam/pam-limits",
-    "elevate-pam/pam-deny",
-    "elevate-pam/pam-permit",
-    "elevate-pam/pam-rootok",
-    "elevate-pam/pam-wheel",
-    "elevate-pam/pam-nologin",
-    "elevate-pam/pam-securetty",
-    "elevate-pam/pam-access",
-    "elevate-pam/pam-faillock",
-    "elevate-pam/pam-mkhomedir",
-    "elevate-pam/pam-pwhistory",
-    "elevate-pam/pam-loginuid",
-    "elevate-pam/pam-cap",
-    "elevate-pam/pam-listfile",
-    "elevate-pam/pam-timestamp",
-    "elevate-pam/pam-keyinit",
-    "elevate-pam/pam-group",
-    "elevate-pam/pam-time",
-    "elevate-pam/pam-xauth",
-    "elevate-pam/pam-canonicalize-user",
-    "elevate-pam/pam-filter",
-    "elevate-pam/pam-ftp",
-    "elevate-pam/pam-stress",
-    "elevate-pam/pam-tally2",
-    "elevate-pam/pam-namespace",
-    "elevate-pam/pam-systemd",
-    "elevate-pam/helpers/unix_chkpwd",
-    # sudo replacement
-    "elevate",
-    # shadow replacement
-    "elevate-umbra",
+    "pam",
+    "libpam-abi",
+    "libpam-misc",
+    "elevate-pam-cli",
+    "pam-unix",
+    "pam-env",
+    "pam-limits",
+    "pam-deny",
+    "pam-permit",
+    "pam-rootok",
+    "pam-wheel",
+    "pam-nologin",
+    "pam-securetty",
+    "pam-access",
+    "pam-faillock",
+    "pam-mkhomedir",
+    "pam-pwhistory",
+    "pam-loginuid",
+    "pam-cap",
+    "pam-listfile",
+    "pam-timestamp",
+    "pam-keyinit",
+    "pam-group",
+    "pam-time",
+    "pam-xauth",
+    "pam-canonicalize-user",
+    "pam-filter",
+    "pam-ftp",
+    "pam-stress",
+    "pam-tally2",
+    "pam-namespace",
+    "pam-systemd",
+    "helpers/unix_chkpwd",
 ]
 default-members = [
-    "elevate-paths",
-    "elevate-crypto",
-    "elevate-pam/pam",
-    "elevate-pam/libpam-abi",
-    "elevate-pam/libpam-misc",
-    "elevate-pam/elevate-pam-cli",
-    "elevate",
-    "elevate-umbra",
+    "pam",
+    "libpam-abi",
+    "libpam-misc",
+    "elevate-pam-cli",
 ]
 
 [workspace.package]
@@ -74,32 +54,12 @@ license = "MIT OR Apache-2.0"
 authors = ["alizain <alizain@zainiumdynamics.tech>"]
 homepage = "https://zainiumdynamics.tech"
 repository = "https://github.com/Zainium-Dynamics/elevate-privilege"
-categories = ["authentication", "cryptography", "os::linux-apis"]
-keywords = ["elevate", "crypto", "pam", "ed25519", "blake3"]
+categories = ["authentication", "os::linux-apis"]
+keywords = ["pam", "authentication", "linux", "security"]
 
 [workspace.dependencies]
-elevate-paths = { path = "elevate-paths", version = "1.0.1" }
-elevate-crypto = { path = "elevate-crypto", version = "1.0.1" }
-elevate-pam = { path = "elevate-pam/pam", version = "1.0.1" }
-elevate-umbra = { path = "elevate-umbra", version = "1.0.1" }
+elevate-pam = { path = "pam", version = "1.0.1" }
 libc = "0.2"
-glob = "0.3"
-serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
-toml = { version = "0.8", default-features = false, features = ["parse"] }
-zeroize = { version = "1.8", default-features = false, features = ["alloc"] }
-log = { version = "0.4", default-features = false }
-blake3 = "1.5"
-ed25519-dalek = { version = "2.1", default-features = false, features = ["alloc", "rand_core"] }
-argon2 = { version = "0.5", default-features = false, features = ["alloc", "password-hash"] }
-bcrypt = "0.16"
-sha-crypt = "0.5"
-getrandom = "0.2"
-rand_core = { version = "0.6", default-features = false, features = ["getrandom"] }
-password-hash = { version = "0.5", default-features = false, features = ["alloc"] }
-subtle = { version = "2.5", default-features = false }
-bitflags = "2.6"
-once_cell = "1.20"
-nix = { version = "0.29", default-features = false, features = ["user", "fs", "process", "signal"] }
 
 [profile.release]
 lto = true
