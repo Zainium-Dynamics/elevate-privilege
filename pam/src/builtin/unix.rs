@@ -373,7 +373,7 @@ fn password_in_history(user: &str, plain: &str) -> bool {
             return true;
         }
         #[cfg(not(feature = "elevate_crypto"))]
-        let _ = h;
+        let _ = (h, plain);
     }
     false
 }

@@ -5,6 +5,7 @@ use alloc::vec::Vec;
 
 #[cfg(feature = "std")]
 use crate::constants::{PAM_BUF_ERR, PAM_ERROR_MSG, PAM_TEXT_INFO};
+#[cfg_attr(not(feature = "std"), allow(unused_imports))]
 use crate::constants::{PAM_CONV_ERR, PAM_PROMPT_ECHO_OFF, PAM_PROMPT_ECHO_ON, PAM_SUCCESS};
 use crate::error::{PamError, PamResult, PamStatus};
 use crate::types::{Message, MsgStyle, Response};

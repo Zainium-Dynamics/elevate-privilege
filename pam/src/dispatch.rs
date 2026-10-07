@@ -109,6 +109,7 @@ pub fn dispatch(pamh: &mut PamHandle, flags: i32, kind: StackKind) -> PamResult<
         // participates in *this* loop's own impression/status directly,
         // matching upstream's "as if written here" semantics.
         if entry.control == ControlFlag::Substack {
+            #[cfg_attr(not(feature = "std"), allow(unused_variables))]
             let nested_name = &entry.module;
             #[cfg(feature = "std")]
             {
@@ -221,6 +222,7 @@ pub fn dispatch(pamh: &mut PamHandle, flags: i32, kind: StackKind) -> PamResult<
     Ok(PamStatus::new(final_status))
 }
 
+#[cfg_attr(not(feature = "std"), allow(dead_code))]
 fn dispatch_entries(
     pamh: &mut PamHandle,
     flags: i32,

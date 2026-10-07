@@ -5,6 +5,7 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 
 use crate::constants::*;
+#[cfg_attr(not(feature = "std"), allow(unused_imports))]
 use crate::error::{PamError, PamResult, PamStatus};
 use crate::handle::PamHandle;
 use crate::types::StackKind;

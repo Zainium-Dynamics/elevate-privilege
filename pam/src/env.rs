@@ -3,6 +3,7 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
+#[cfg_attr(not(feature = "std"), allow(unused_imports))]
 use crate::constants::{PAM_BAD_ITEM, PAM_BUF_ERR, PAM_SUCCESS};
 use crate::error::{PamError, PamResult};
 

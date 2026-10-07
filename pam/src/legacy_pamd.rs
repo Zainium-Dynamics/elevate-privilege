@@ -4,7 +4,7 @@
 //! Runtime configuration for elevate-pam itself remains TOML-first; this
 //! module exists only for migration / drop-in compatibility.
 
-use alloc::string::{String, ToString};
+use alloc::string::String;
 use alloc::vec::Vec;
 use std::fs;
 use std::path::PathBuf;
@@ -62,7 +62,7 @@ pub fn parse_pamd(text: &str) -> PamResult<ServiceConfig> {
         // continuation with trailing \
         let line = line.trim_end_matches('\\').trim();
         let mut optional_load = false;
-        let mut parts: Vec<&str> = line.split_whitespace().collect();
+        let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.is_empty() {
             continue;
         }
