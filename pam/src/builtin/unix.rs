@@ -65,15 +65,21 @@ fn authenticate(pamh: &mut PamHandle, flags: i32, args: &[String]) -> PamStatus 
 
     // use_first_pass: only ever use an already-set AUTHTOK item (from an
     // earlier module in the same auth stack) -- never converse for one.
-    // try_first_pass is the default behavior of get_authtok() already
-    // (reuse if set, prompt otherwise), so it needs no special handling.
+    // try_first_pass: reuse a token set earlier in the stack, else prompt.
+    // With neither option, always prompt, as Linux-PAM does, so an old or
+    // wrong password is never silently re-checked.
     let tok = if arg_has(args, "use_first_pass") {
         match pamh.get_item_str(ItemType::AuthTok) {
             Some(t) if !t.is_empty() => t.to_string(),
             _ => return PamStatus::new(PAM_AUTH_ERR),
         }
-    } else {
+    } else if arg_has(args, "try_first_pass") {
         match pamh.get_authtok(None) {
+            Ok(t) => t,
+            Err(e) => return e.to_status(),
+        }
+    } else {
+        match pamh.prompt_authtok(None) {
             Ok(t) => t,
             Err(e) => return e.to_status(),
         }

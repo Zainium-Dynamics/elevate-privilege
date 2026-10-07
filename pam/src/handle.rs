@@ -208,13 +208,20 @@ impl PamHandle {
         }
     }
 
-    /// Prompt for auth token (password) if not already set.
+    /// Return the cached auth token, or prompt for one if none is set
+    /// (the `try_first_pass` behaviour).
     pub fn get_authtok(&mut self, prompt: Option<&str>) -> PamResult<String> {
         if let Some(ref t) = self.authtok {
             if !t.is_empty() {
                 return Ok(String::from(t.expose()));
             }
         }
+        self.prompt_authtok(prompt)
+    }
+
+    /// Always prompt for the auth token, ignoring any cached one, and cache
+    /// the answer.
+    pub fn prompt_authtok(&mut self, prompt: Option<&str>) -> PamResult<String> {
         let prompt = prompt.unwrap_or("Password: ");
         #[cfg(feature = "std")]
         {
@@ -249,12 +256,23 @@ impl PamHandle {
     }
 
     /// Authenticate via stack dispatch.
+    ///
+    /// A failed attempt drops the cached auth token. Callers retry by calling
+    /// this again on the same handle, and without this the next attempt would
+    /// re-check the same wrong password instead of asking for a new one.
     pub fn authenticate(&mut self, flags: i32) -> PamResult<()> {
-        let status = crate::dispatch::dispatch(self, flags, StackKind::Auth)?;
+        let status = match crate::dispatch::dispatch(self, flags, StackKind::Auth) {
+            Ok(status) => status,
+            Err(e) => {
+                self.authtok = None;
+                return Err(e);
+            }
+        };
         self.last_status = status.code();
         if status.is_success() {
             Ok(())
         } else {
+            self.authtok = None;
             Err(PamError::Status(status))
         }
     }

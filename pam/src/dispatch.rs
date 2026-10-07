@@ -504,4 +504,33 @@ module = "deny"
         // it -- `deny` is never reached.
         assert!(pamh.authenticate(0).is_ok());
     }
+
+    #[test]
+    fn failed_authenticate_drops_cached_authtok() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("test.toml"),
+            r#"
+[service]
+name = "test"
+
+[[auth]]
+control = "required"
+module = "deny"
+"#,
+        )
+        .unwrap();
+
+        let global = global_with_services_dir(dir.path());
+        let mut pamh = crate::appl::PamBuilder::new("test")
+            .global(global)
+            .start(crate::conv::PamConv::default())
+            .unwrap();
+
+        pamh.set_item_str(crate::types::ItemType::AuthTok, Some("wrong"))
+            .unwrap();
+        assert!(pamh.authenticate(0).is_err());
+        // a retry must prompt again, not re-check "wrong"
+        assert!(pamh.get_item_str(crate::types::ItemType::AuthTok).is_none());
+    }
 }
